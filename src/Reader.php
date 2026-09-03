@@ -6,7 +6,7 @@ namespace Lxr\BinaryData;
 
 use Lxr\BinaryData\Contracts\StreamContract;
 use Lxr\BinaryData\Contracts\ReaderContract;
-use Lxr\BinaryData\Enums\BytesOrder;
+use Lxr\BinaryData\Enums\ByteOrder;
 use Lxr\BinaryData\Enums\LengthPrefixSize;
 use Lxr\BinaryData\Exceptions\InvalidArgumentException;
 use Lxr\BinaryData\Exceptions\LogicException;
@@ -28,15 +28,15 @@ class Reader implements ReaderContract
     /**
      * Construct new Reader instance.
      *
-     * @param StreamContract $resource Stream to read from
-     * @param BytesOrder $bytesOrder Byte order for reading multi-byte values
+     * @param StreamContract $stream Stream to read from
+     * @param ByteOrder $byteOrder Byte order for reading multi-byte values
      * @param int $maximumStringLength Maximum length of a variable-length string
      * @return void
      * @throws InvalidArgumentException When the maximum string length is negative
      */
     public function __construct(
-        private StreamContract $resource,
-        BytesOrder $bytesOrder = BytesOrder::NATIVE,
+        private StreamContract $stream,
+        ByteOrder $byteOrder = ByteOrder::NATIVE,
         private int $maximumStringLength = self::DEFAULT_MAXIMUM_STRING_LENGTH,
     ) {
         if ($maximumStringLength < 0) {
@@ -45,7 +45,7 @@ class Reader implements ReaderContract
             );
         }
 
-        $this->bytesOrder = $bytesOrder;
+        $this->byteOrder = $byteOrder;
     }
 
     /**
@@ -56,7 +56,7 @@ class Reader implements ReaderContract
      */
     public function readBytes(int $length): string
     {
-        return $this->resource->read($length);
+        return $this->stream->read($length);
     }
 
     /**
@@ -84,7 +84,7 @@ class Reader implements ReaderContract
         $data = '';
 
         while (strlen($data) < $length) {
-            $chunk = $this->resource->read($length - strlen($data));
+            $chunk = $this->stream->read($length - strlen($data));
             if ($chunk === '') {
                 throw new UnexpectedValueException(
                     sprintf('Expected %d bytes, received %d', $length, strlen($data))
@@ -186,10 +186,10 @@ class Reader implements ReaderContract
      */
     public function readUInt16(): int
     {
-        $format = match ($this->bytesOrder) {
-            BytesOrder::NATIVE => 'S',
-            BytesOrder::LITTLE_ENDIAN => 'v',
-            BytesOrder::BIG_ENDIAN => 'n',
+        $format = match ($this->byteOrder) {
+            ByteOrder::NATIVE => 'S',
+            ByteOrder::LITTLE_ENDIAN => 'v',
+            ByteOrder::BIG_ENDIAN => 'n',
         };
 
         $data = $this->readExactly(2);
@@ -203,10 +203,10 @@ class Reader implements ReaderContract
      */
     public function readUInt32(): int
     {
-        $format = match ($this->bytesOrder) {
-            BytesOrder::NATIVE => 'L',
-            BytesOrder::LITTLE_ENDIAN => 'V',
-            BytesOrder::BIG_ENDIAN => 'N',
+        $format = match ($this->byteOrder) {
+            ByteOrder::NATIVE => 'L',
+            ByteOrder::LITTLE_ENDIAN => 'V',
+            ByteOrder::BIG_ENDIAN => 'N',
         };
 
         $data = $this->readExactly(4);
@@ -222,10 +222,10 @@ class Reader implements ReaderContract
     {
         $data = $this->readExactly(8);
 
-        $data = match ($this->bytesOrder->resolve()) {
-            BytesOrder::BIG_ENDIAN => $data,
-            BytesOrder::LITTLE_ENDIAN => strrev($data),
-            BytesOrder::NATIVE => throw new LogicException(
+        $data = match ($this->byteOrder->resolve()) {
+            ByteOrder::BIG_ENDIAN => $data,
+            ByteOrder::LITTLE_ENDIAN => strrev($data),
+            ByteOrder::NATIVE => throw new LogicException(
                 'Resolved byte order cannot be native'
             ),
         };
@@ -240,10 +240,10 @@ class Reader implements ReaderContract
      */
     public function readFloat(): float
     {
-        $format = match ($this->bytesOrder) {
-            BytesOrder::NATIVE => 'f',
-            BytesOrder::LITTLE_ENDIAN => 'g',
-            BytesOrder::BIG_ENDIAN => 'G',
+        $format = match ($this->byteOrder) {
+            ByteOrder::NATIVE => 'f',
+            ByteOrder::LITTLE_ENDIAN => 'g',
+            ByteOrder::BIG_ENDIAN => 'G',
         };
 
         $data = $this->readExactly(strlen(pack($format, 0.0)));
@@ -257,10 +257,10 @@ class Reader implements ReaderContract
      */
     public function readDouble(): float
     {
-        $format = match ($this->bytesOrder) {
-            BytesOrder::NATIVE => 'd',
-            BytesOrder::LITTLE_ENDIAN => 'e',
-            BytesOrder::BIG_ENDIAN => 'E',
+        $format = match ($this->byteOrder) {
+            ByteOrder::NATIVE => 'd',
+            ByteOrder::LITTLE_ENDIAN => 'e',
+            ByteOrder::BIG_ENDIAN => 'E',
         };
 
         $data = $this->readExactly(strlen(pack($format, 0.0)));
@@ -274,13 +274,13 @@ class Reader implements ReaderContract
      * @return string String read from the stream
      * @throws OverflowException When the configured maximum string length is exceeded
      */
-    public function readStringWithLengthPrefix(
-        LengthPrefixSize $prefixSize = LengthPrefixSize::INT
+    public function readLengthPrefixedString(
+        LengthPrefixSize $prefixSize = LengthPrefixSize::UINT32
     ): string {
         $length = match ($prefixSize) {
-            LengthPrefixSize::BYTE => $this->readUInt8(),
-            LengthPrefixSize::SHORT => $this->readUInt16(),
-            LengthPrefixSize::INT => $this->readUInt32(),
+            LengthPrefixSize::UINT8 => $this->readUInt8(),
+            LengthPrefixSize::UINT16 => $this->readUInt16(),
+            LengthPrefixSize::UINT32 => $this->readUInt32(),
         };
 
         $this->assertStringLengthWithinLimit($length);
@@ -295,7 +295,7 @@ class Reader implements ReaderContract
      * @throws OverflowException When the configured maximum string length is exceeded
      * @throws UnexpectedValueException When the stream ends before the null terminator
      */
-    public function readStringWithNullTerminator(): string
+    public function readNullTerminatedString(): string
     {
         return $this->readUntilDelimiter("\0", true);
     }
@@ -320,7 +320,7 @@ class Reader implements ReaderContract
         $delimiterLength = strlen($delimiter);
 
         while (true) {
-            $char = $this->resource->read(1);
+            $char = $this->stream->read(1);
             if ($char === '') {
                 $this->assertStringLengthWithinLimit(strlen($result));
 
@@ -378,7 +378,7 @@ class Reader implements ReaderContract
      */
     public function getPosition(): int
     {
-        return $this->resource->getPosition();
+        return $this->stream->getPosition();
     }
 
     /**
@@ -389,6 +389,6 @@ class Reader implements ReaderContract
      */
     public function setPosition(int $position): void
     {
-        $this->resource->setPosition($position);
+        $this->stream->setPosition($position);
     }
 }

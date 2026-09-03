@@ -111,8 +111,8 @@ interface ReaderContract
      * @throws OverflowException When the configured maximum string length is exceeded
      * @throws UnexpectedValueException When the stream ends before the string is complete
      */
-    public function readStringWithLengthPrefix(
-        LengthPrefixSize $prefixSize = LengthPrefixSize::INT
+    public function readLengthPrefixedString(
+        LengthPrefixSize $prefixSize = LengthPrefixSize::UINT32
     ): string;
 
     /**
@@ -122,7 +122,7 @@ interface ReaderContract
      * @throws OverflowException When the configured maximum string length is exceeded
      * @throws UnexpectedValueException When the stream ends before the null terminator
      */
-    public function readStringWithNullTerminator(): string;
+    public function readNullTerminatedString(): string;
 
     /**
      * Get the current stream position.

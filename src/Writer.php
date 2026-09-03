@@ -6,7 +6,7 @@ namespace Lxr\BinaryData;
 
 use Lxr\BinaryData\Contracts\StreamContract;
 use Lxr\BinaryData\Contracts\WriterContract;
-use Lxr\BinaryData\Enums\BytesOrder;
+use Lxr\BinaryData\Enums\ByteOrder;
 use Lxr\BinaryData\Enums\LengthPrefixSize;
 use Lxr\BinaryData\Exceptions\InvalidArgumentException;
 use Lxr\BinaryData\Exceptions\LogicException;
@@ -22,14 +22,14 @@ class Writer implements WriterContract
     /**
      * Construct new Writer instance.
      *
-     * @param StreamContract $resource Stream to write to
+     * @param StreamContract $stream Stream to write to
      * @return void
      */
     public function __construct(
-        private StreamContract $resource,
-        BytesOrder $bytesOrder = BytesOrder::NATIVE,
+        private StreamContract $stream,
+        ByteOrder $byteOrder = ByteOrder::NATIVE,
     ) {
-        $this->bytesOrder = $bytesOrder;
+        $this->byteOrder = $byteOrder;
     }
 
     /**
@@ -140,10 +140,10 @@ class Writer implements WriterContract
     {
         $this->assertIntegerInRange($value, 0, 65_535, 'unsigned 16-bit integer');
 
-        $format = match ($this->bytesOrder) {
-            BytesOrder::NATIVE => 'S',
-            BytesOrder::LITTLE_ENDIAN => 'v',
-            BytesOrder::BIG_ENDIAN => 'n',
+        $format = match ($this->byteOrder) {
+            ByteOrder::NATIVE => 'S',
+            ByteOrder::LITTLE_ENDIAN => 'v',
+            ByteOrder::BIG_ENDIAN => 'n',
         };
 
         $data = pack($format, $value);
@@ -166,10 +166,10 @@ class Writer implements WriterContract
             'unsigned 32-bit integer'
         );
 
-        $format = match ($this->bytesOrder) {
-            BytesOrder::NATIVE => 'L',
-            BytesOrder::LITTLE_ENDIAN => 'V',
-            BytesOrder::BIG_ENDIAN => 'N',
+        $format = match ($this->byteOrder) {
+            ByteOrder::NATIVE => 'L',
+            ByteOrder::LITTLE_ENDIAN => 'V',
+            ByteOrder::BIG_ENDIAN => 'N',
         };
 
         $data = pack($format, $value);
@@ -184,10 +184,10 @@ class Writer implements WriterContract
      */
     public function writeUInt64(UInt64 $value): void
     {
-        $data = match ($this->bytesOrder->resolve()) {
-            BytesOrder::BIG_ENDIAN => $value->toBigEndianBytes(),
-            BytesOrder::LITTLE_ENDIAN => $value->toLittleEndianBytes(),
-            BytesOrder::NATIVE => throw new LogicException(
+        $data = match ($this->byteOrder->resolve()) {
+            ByteOrder::BIG_ENDIAN => $value->toBigEndianBytes(),
+            ByteOrder::LITTLE_ENDIAN => $value->toLittleEndianBytes(),
+            ByteOrder::NATIVE => throw new LogicException(
                 'Resolved byte order cannot be native'
             ),
         };
@@ -203,10 +203,10 @@ class Writer implements WriterContract
      */
     public function writeFloat(float $value): int
     {
-        $format = match ($this->bytesOrder) {
-            BytesOrder::NATIVE => 'f',
-            BytesOrder::LITTLE_ENDIAN => 'g',
-            BytesOrder::BIG_ENDIAN => 'G',
+        $format = match ($this->byteOrder) {
+            ByteOrder::NATIVE => 'f',
+            ByteOrder::LITTLE_ENDIAN => 'g',
+            ByteOrder::BIG_ENDIAN => 'G',
         };
 
         $data = pack($format, $value);
@@ -223,10 +223,10 @@ class Writer implements WriterContract
      */
     public function writeDouble(float $value): int
     {
-        $format = match ($this->bytesOrder) {
-            BytesOrder::NATIVE => 'd',
-            BytesOrder::LITTLE_ENDIAN => 'e',
-            BytesOrder::BIG_ENDIAN => 'E',
+        $format = match ($this->byteOrder) {
+            ByteOrder::NATIVE => 'd',
+            ByteOrder::LITTLE_ENDIAN => 'e',
+            ByteOrder::BIG_ENDIAN => 'E',
         };
 
         $data = pack($format, $value);
@@ -242,7 +242,7 @@ class Writer implements WriterContract
      * @return int Number of encoded bytes written, including the null terminator
      * @throws InvalidArgumentException When the string contains a null byte
      */
-    public function writeStringWithNullTerminator(string $value): int
+    public function writeNullTerminatedString(string $value): int
     {
         if (str_contains($value, "\0")) {
             throw new InvalidArgumentException(
@@ -260,16 +260,16 @@ class Writer implements WriterContract
      * Write a string preceded by its length.
      *
      * @param string $value String to write
-     * @param LengthPrefixSize $lengthPrefixSize Size of the length prefix
+     * @param LengthPrefixSize $prefixSize Size of the length prefix
      * @return int Number of encoded bytes written, including the length prefix
      * @throws OverflowException When the string length does not fit in the prefix
      */
-    public function writeStringWithLengthPrefix(
+    public function writeLengthPrefixedString(
         string $value,
-        LengthPrefixSize $lengthPrefixSize = LengthPrefixSize::INT
+        LengthPrefixSize $prefixSize = LengthPrefixSize::UINT32
     ): int {
         $length = strlen($value);
-        $maximumLength = $lengthPrefixSize->maximumValue();
+        $maximumLength = $prefixSize->maximumValue();
 
         if ($length > $maximumLength) {
             throw new OverflowException(
@@ -277,26 +277,26 @@ class Writer implements WriterContract
                     'String length %d exceeds the maximum value %d for a %d-byte prefix',
                     $length,
                     $maximumLength,
-                    $lengthPrefixSize->value,
+                    $prefixSize->value,
                 )
             );
         }
 
-        switch ($lengthPrefixSize) {
-            case LengthPrefixSize::BYTE:
+        switch ($prefixSize) {
+            case LengthPrefixSize::UINT8:
                 $this->writeUInt8($length);
                 break;
-            case LengthPrefixSize::SHORT:
+            case LengthPrefixSize::UINT16:
                 $this->writeUInt16($length);
                 break;
-            case LengthPrefixSize::INT:
+            case LengthPrefixSize::UINT32:
                 $this->writeUInt32($length);
                 break;
         }
 
         $this->writeExactly($value);
 
-        return $lengthPrefixSize->value + $length;
+        return $prefixSize->value + $length;
     }
 
     /**
@@ -312,7 +312,7 @@ class Writer implements WriterContract
         $totalBytesWritten = 0;
 
         if ($length === 0) {
-            $bytesWritten = $this->resource->write('');
+            $bytesWritten = $this->stream->write('');
 
             if ($bytesWritten !== 0) {
                 throw new RuntimeException(
@@ -325,7 +325,7 @@ class Writer implements WriterContract
 
         while ($totalBytesWritten < $length) {
             $remainingData = substr($data, $totalBytesWritten);
-            $bytesWritten = $this->resource->write($remainingData);
+            $bytesWritten = $this->stream->write($remainingData);
 
             if ($bytesWritten < 0 || $bytesWritten > strlen($remainingData)) {
                 throw new RuntimeException(
@@ -377,7 +377,7 @@ class Writer implements WriterContract
      */
     public function getPosition(): int
     {
-        return $this->resource->getPosition();
+        return $this->stream->getPosition();
     }
 
     /**
@@ -388,6 +388,6 @@ class Writer implements WriterContract
      */
     public function setPosition(int $position): void
     {
-        $this->resource->setPosition($position);
+        $this->stream->setPosition($position);
     }
 }

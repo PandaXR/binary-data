@@ -10,13 +10,13 @@ namespace Lxr\BinaryData\Enums;
 enum LengthPrefixSize: int
 {
     /** An unsigned 8-bit length prefix. */
-    case BYTE = 1;
+    case UINT8 = 1;
 
     /** An unsigned 16-bit length prefix. */
-    case SHORT = 2;
+    case UINT16 = 2;
 
     /** An unsigned 32-bit length prefix. */
-    case INT = 4;
+    case UINT32 = 4;
 
     /**
      * Get the largest length representable by this prefix.
@@ -26,9 +26,9 @@ enum LengthPrefixSize: int
     public function maximumValue(): int
     {
         return match ($this) {
-            self::BYTE => 255,
-            self::SHORT => 65_535,
-            self::INT => 4_294_967_295,
+            self::UINT8 => 255,
+            self::UINT16 => 65_535,
+            self::UINT32 => 4_294_967_295,
         };
     }
 }

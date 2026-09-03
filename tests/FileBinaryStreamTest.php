@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Lxr\BinaryData\Tests;
 
-use Lxr\BinaryData\Enums\BytesOrder;
+use Lxr\BinaryData\Enums\ByteOrder;
 use Lxr\BinaryData\Enums\LengthPrefixSize;
 use Lxr\BinaryData\Exceptions\InvalidArgumentException;
 use Lxr\BinaryData\Exceptions\RuntimeException;
@@ -64,26 +64,26 @@ final class FileBinaryStreamTest extends TestCase
         $stream = new FileBinaryStream($this->filePath);
 
         try {
-            $writer = new Writer($stream, BytesOrder::BIG_ENDIAN);
+            $writer = new Writer($stream, ByteOrder::BIG_ENDIAN);
             $writer->writeInt64(PHP_INT_MIN);
             $writer->writeUInt64(new UInt64("\xff\xff\xff\xff\xff\xff\xff\xff"));
             self::assertSame(
                 6,
-                $writer->writeStringWithLengthPrefix('data', LengthPrefixSize::SHORT)
+                $writer->writeLengthPrefixedString('data', LengthPrefixSize::UINT16)
             );
-            self::assertSame(6, $writer->writeStringWithNullTerminator('alpha'));
+            self::assertSame(6, $writer->writeNullTerminatedString('alpha'));
             $encodedLength = $writer->getPosition();
 
-            $reader = new Reader($stream, BytesOrder::BIG_ENDIAN);
+            $reader = new Reader($stream, ByteOrder::BIG_ENDIAN);
             $reader->setPosition(0);
 
             self::assertSame(PHP_INT_MIN, $reader->readInt64());
             self::assertSame('ffffffffffffffff', $reader->readUInt64()->toHex());
             self::assertSame(
                 'data',
-                $reader->readStringWithLengthPrefix(LengthPrefixSize::SHORT)
+                $reader->readLengthPrefixedString(LengthPrefixSize::UINT16)
             );
-            self::assertSame('alpha', $reader->readStringWithNullTerminator());
+            self::assertSame('alpha', $reader->readNullTerminatedString());
             self::assertSame($encodedLength, $reader->getPosition());
         } finally {
             $stream->close();

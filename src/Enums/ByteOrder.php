@@ -7,7 +7,7 @@ namespace Lxr\BinaryData\Enums;
 /**
  * Byte orders supported when reading and writing multi-byte values.
  */
-enum BytesOrder: int
+enum ByteOrder: int
 {
     /** Use the byte order of the current PHP runtime. */
     case NATIVE = 0;

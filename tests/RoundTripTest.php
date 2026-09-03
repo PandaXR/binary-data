@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Lxr\BinaryData\Tests;
 
-use Lxr\BinaryData\Enums\BytesOrder;
+use Lxr\BinaryData\Enums\ByteOrder;
 use Lxr\BinaryData\Enums\LengthPrefixSize;
 use Lxr\BinaryData\Reader;
 use Lxr\BinaryData\Tests\Support\MemoryStream;
@@ -16,17 +16,17 @@ use PHPUnit\Framework\TestCase;
 final class RoundTripTest extends TestCase
 {
     /**
-     * @return iterable<string, array{BytesOrder}>
+     * @return iterable<string, array{ByteOrder}>
      */
     public static function byteOrders(): iterable
     {
-        yield 'native byte order' => [BytesOrder::NATIVE];
-        yield 'little-endian byte order' => [BytesOrder::LITTLE_ENDIAN];
-        yield 'big-endian byte order' => [BytesOrder::BIG_ENDIAN];
+        yield 'native byte order' => [ByteOrder::NATIVE];
+        yield 'little-endian byte order' => [ByteOrder::LITTLE_ENDIAN];
+        yield 'big-endian byte order' => [ByteOrder::BIG_ENDIAN];
     }
 
     #[DataProvider('byteOrders')]
-    public function testRoundTripsIntegerBoundaries(BytesOrder $byteOrder): void
+    public function testRoundTripsIntegerBoundaries(ByteOrder $byteOrder): void
     {
         $stream = new MemoryStream();
         $writer = new Writer($stream, $byteOrder);
@@ -63,7 +63,7 @@ final class RoundTripTest extends TestCase
     }
 
     #[DataProvider('byteOrders')]
-    public function testRoundTripsEntireUInt64Range(BytesOrder $byteOrder): void
+    public function testRoundTripsEntireUInt64Range(ByteOrder $byteOrder): void
     {
         $values = [
             new UInt64("\x00\x00\x00\x00\x00\x00\x00\x00"),
@@ -87,7 +87,7 @@ final class RoundTripTest extends TestCase
 
     #[DataProvider('byteOrders')]
     public function testRoundTripsFiniteAndSpecialFloatingPointValues(
-        BytesOrder $byteOrder
+        ByteOrder $byteOrder
     ): void {
         $values = [0.0, -123.5, INF, -INF, NAN];
         $stream = new MemoryStream();
@@ -117,21 +117,21 @@ final class RoundTripTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{BytesOrder, LengthPrefixSize, string}>
+     * @return iterable<string, array{ByteOrder, LengthPrefixSize, string}>
      */
     public static function lengthPrefixedStrings(): iterable
     {
         $values = [
-            'empty byte-prefixed string' => [LengthPrefixSize::BYTE, ''],
-            'maximum byte-prefixed string' => [LengthPrefixSize::BYTE, str_repeat('a', 255)],
+            'empty byte-prefixed string' => [LengthPrefixSize::UINT8, ''],
+            'maximum byte-prefixed string' => [LengthPrefixSize::UINT8, str_repeat('a', 255)],
             'maximum short-prefixed string' => [
-                LengthPrefixSize::SHORT,
+                LengthPrefixSize::UINT16,
                 str_repeat("a\0", 32_767) . 'a',
             ],
-            'binary int-prefixed string' => [LengthPrefixSize::INT, "\x00binary\xff"],
+            'binary int-prefixed string' => [LengthPrefixSize::UINT32, "\x00binary\xff"],
         ];
 
-        foreach (BytesOrder::cases() as $byteOrder) {
+        foreach (ByteOrder::cases() as $byteOrder) {
             foreach ($values as $description => [$prefixSize, $value]) {
                 yield $byteOrder->name . ': ' . $description => [
                     $byteOrder,
@@ -144,7 +144,7 @@ final class RoundTripTest extends TestCase
 
     #[DataProvider('lengthPrefixedStrings')]
     public function testRoundTripsLengthPrefixedStringsAtTheirBoundaries(
-        BytesOrder $byteOrder,
+        ByteOrder $byteOrder,
         LengthPrefixSize $prefixSize,
         string $value,
     ): void {
@@ -153,7 +153,7 @@ final class RoundTripTest extends TestCase
 
         self::assertSame(
             $prefixSize->value + strlen($value),
-            $writer->writeStringWithLengthPrefix($value, $prefixSize)
+            $writer->writeLengthPrefixedString($value, $prefixSize)
         );
 
         $reader = new Reader(
@@ -163,12 +163,12 @@ final class RoundTripTest extends TestCase
         );
         $reader->setPosition(0);
 
-        self::assertSame($value, $reader->readStringWithLengthPrefix($prefixSize));
+        self::assertSame($value, $reader->readLengthPrefixedString($prefixSize));
         self::assertSame(strlen($stream->data), $reader->getPosition());
     }
 
     #[DataProvider('byteOrders')]
-    public function testRoundTripsNullTerminatedStrings(BytesOrder $byteOrder): void
+    public function testRoundTripsNullTerminatedStrings(ByteOrder $byteOrder): void
     {
         $values = ['', 'alpha', "binary\xff"];
         $stream = new MemoryStream();
@@ -177,7 +177,7 @@ final class RoundTripTest extends TestCase
         foreach ($values as $value) {
             self::assertSame(
                 strlen($value) + 1,
-                $writer->writeStringWithNullTerminator($value)
+                $writer->writeNullTerminatedString($value)
             );
         }
 
@@ -185,7 +185,7 @@ final class RoundTripTest extends TestCase
         $reader->setPosition(0);
 
         foreach ($values as $expected) {
-            self::assertSame($expected, $reader->readStringWithNullTerminator());
+            self::assertSame($expected, $reader->readNullTerminatedString());
         }
     }
 }

@@ -40,7 +40,7 @@ it if it does not already exist.
 ```php
 <?php
 
-use Lxr\BinaryData\Enums\BytesOrder;
+use Lxr\BinaryData\Enums\ByteOrder;
 use Lxr\BinaryData\Enums\LengthPrefixSize;
 use Lxr\BinaryData\Reader;
 use Lxr\BinaryData\Streams\FileBinaryStream;
@@ -52,19 +52,19 @@ file_put_contents($path, '');
 $stream = new FileBinaryStream($path);
 
 try {
-    $writer = new Writer($stream, BytesOrder::BIG_ENDIAN);
+    $writer = new Writer($stream, ByteOrder::BIG_ENDIAN);
     $writer->writeUInt16(0xcafe);
     $writer->writeInt32(-42);
-    $writer->writeStringWithLengthPrefix('hello', LengthPrefixSize::BYTE);
-    $writer->writeStringWithNullTerminator('done');
+    $writer->writeLengthPrefixedString('hello', LengthPrefixSize::UINT8);
+    $writer->writeNullTerminatedString('done');
 
-    $reader = new Reader($stream, BytesOrder::BIG_ENDIAN);
+    $reader = new Reader($stream, ByteOrder::BIG_ENDIAN);
     $reader->setPosition(0);
 
     $marker = $reader->readUInt16();
     $number = $reader->readInt32();
-    $message = $reader->readStringWithLengthPrefix(LengthPrefixSize::BYTE);
-    $status = $reader->readStringWithNullTerminator();
+    $message = $reader->readLengthPrefixedString(LengthPrefixSize::UINT8);
+    $status = $reader->readNullTerminatedString();
 } finally {
     $stream->close();
 }
@@ -72,14 +72,14 @@ try {
 
 ## Byte order
 
-Pass a `BytesOrder` value to `Reader` and `Writer`:
+Pass a `ByteOrder` value to `Reader` and `Writer`:
 
 ```php
-$reader = new Reader($stream, BytesOrder::LITTLE_ENDIAN);
-$writer = new Writer($stream, BytesOrder::BIG_ENDIAN);
+$reader = new Reader($stream, ByteOrder::LITTLE_ENDIAN);
+$writer = new Writer($stream, ByteOrder::BIG_ENDIAN);
 ```
 
-`BytesOrder::NATIVE` is the default. Byte order affects multi-byte integers and
+`ByteOrder::NATIVE` is the default. Byte order affects multi-byte integers and
 floating-point values; it does not affect raw bytes or strings.
 
 ## Supported values
@@ -90,8 +90,8 @@ floating-point values; it does not affect raw bytes or strings.
 | Signed integers | `readInt8()` through `readInt64()` | `writeInt8()` through `writeInt64()` |
 | Unsigned integers | `readUInt8()` through `readUInt64()` | `writeUInt8()` through `writeUInt64()` |
 | Floating point | `readFloat()`, `readDouble()` | `writeFloat()`, `writeDouble()` |
-| Length-prefixed strings | `readStringWithLengthPrefix()` | `writeStringWithLengthPrefix()` |
-| Null-terminated strings | `readStringWithNullTerminator()` | `writeStringWithNullTerminator()` |
+| Length-prefixed strings | `readLengthPrefixedString()` | `writeLengthPrefixedString()` |
+| Null-terminated strings | `readNullTerminatedString()` | `writeNullTerminatedString()` |
 | Delimited bytes | `readUntil()` | Write the bytes and delimiter separately |
 
 Fixed-width integer and raw-byte writer methods complete the write or throw. Float,
@@ -127,7 +127,7 @@ constructor argument:
 ```php
 $reader = new Reader(
     $stream,
-    BytesOrder::BIG_ENDIAN,
+    ByteOrder::BIG_ENDIAN,
     maximumStringLength: 1_048_576,
 );
 ```
@@ -138,6 +138,9 @@ $reader = new Reader(
 - `readUntil()` returns the remaining bytes when its delimiter is not found.
 - Null-terminated writes reject values containing an embedded null byte.
 - Length-prefixed writes reject values that do not fit in the selected prefix width.
+
+Available prefix widths are `LengthPrefixSize::UINT8` (one byte),
+`LengthPrefixSize::UINT16` (two bytes), and `LengthPrefixSize::UINT32` (four bytes).
 
 ## Platform support
 

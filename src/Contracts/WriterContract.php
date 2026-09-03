@@ -13,6 +13,8 @@ use Lxr\BinaryData\ValueObjects\UInt64;
  * Defines operations for writing typed values to binary data.
  *
  * Implementations must either write each complete encoded value or throw an exception.
+ * Fixed-size and raw-byte writes return no redundant byte count. Floating-point and
+ * encoded-string writes return their total runtime-encoded size.
  */
 interface WriterContract
 {
@@ -117,19 +119,19 @@ interface WriterContract
      * @return int Number of encoded bytes written, including the null terminator
      * @throws InvalidArgumentException When the string contains a null byte
      */
-    public function writeStringWithNullTerminator(string $value): int;
+    public function writeNullTerminatedString(string $value): int;
 
     /**
      * Write a string preceded by an unsigned length prefix.
      *
      * @param string $value String to write
-     * @param LengthPrefixSize $lengthPrefixSize Width of the length prefix
+     * @param LengthPrefixSize $prefixSize Width of the length prefix
      * @return int Number of encoded bytes written, including the length prefix
      * @throws OverflowException When the string length does not fit in the prefix
      */
-    public function writeStringWithLengthPrefix(
+    public function writeLengthPrefixedString(
         string $value,
-        LengthPrefixSize $lengthPrefixSize = LengthPrefixSize::INT
+        LengthPrefixSize $prefixSize = LengthPrefixSize::UINT32
     ): int;
 
     /**

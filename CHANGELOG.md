@@ -16,6 +16,20 @@ this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Security support and private vulnerability-reporting policy.
 - Release changelog.
 
+### Changed
+
+The following API renames are backward-incompatible and are intended for the next `0.x`
+minor release:
+
+- Renamed `BytesOrder` to `ByteOrder`.
+- Renamed length-prefix cases from `BYTE`, `SHORT`, and `INT` to `UINT8`, `UINT16`, and
+  `UINT32`.
+- Renamed string APIs to `readLengthPrefixedString()`, `writeLengthPrefixedString()`,
+  `readNullTerminatedString()`, and `writeNullTerminatedString()`.
+- Renamed Reader and Writer constructor parameters to `$stream` and `$byteOrder`.
+- Clarified Writer return semantics: fixed-size and raw-byte methods return `void`, while
+  floating-point and encoded-string methods return the total encoded byte count.
+
 ## [0.7.0] - 2026-09-03
 
 ### Added

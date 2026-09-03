@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Lxr\BinaryData\Tests;
 
 use Lxr\BinaryData\Contracts\StreamContract;
-use Lxr\BinaryData\Enums\BytesOrder;
+use Lxr\BinaryData\Enums\ByteOrder;
 use Lxr\BinaryData\Enums\LengthPrefixSize;
 use Lxr\BinaryData\Exceptions\InvalidArgumentException;
 use Lxr\BinaryData\Exceptions\OverflowException;
@@ -19,58 +19,58 @@ use PHPUnit\Framework\TestCase;
 final class ReaderTest extends TestCase
 {
     /**
-     * @return iterable<string, array{string, string, BytesOrder, int}>
+     * @return iterable<string, array{string, string, ByteOrder, int}>
      */
     public static function integerReads(): iterable
     {
-        yield 'signed byte' => ['readInt8', "\xfe", BytesOrder::NATIVE, -2];
-        yield 'signed short big endian' => ['readInt16', "\xfe\xfd", BytesOrder::BIG_ENDIAN, -259];
-        yield 'signed short little endian' => ['readInt16', "\xfd\xfe", BytesOrder::LITTLE_ENDIAN, -259];
-        yield 'signed short native endian' => ['readInt16', pack('s', -259), BytesOrder::NATIVE, -259];
+        yield 'signed byte' => ['readInt8', "\xfe", ByteOrder::NATIVE, -2];
+        yield 'signed short big endian' => ['readInt16', "\xfe\xfd", ByteOrder::BIG_ENDIAN, -259];
+        yield 'signed short little endian' => ['readInt16', "\xfd\xfe", ByteOrder::LITTLE_ENDIAN, -259];
+        yield 'signed short native endian' => ['readInt16', pack('s', -259), ByteOrder::NATIVE, -259];
         yield 'signed int big endian' => [
             'readInt32',
             "\x01\x02\x03\x04",
-            BytesOrder::BIG_ENDIAN,
+            ByteOrder::BIG_ENDIAN,
             16_909_060,
         ];
         yield 'signed int little endian' => [
             'readInt32',
             "\x04\x03\x02\x01",
-            BytesOrder::LITTLE_ENDIAN,
+            ByteOrder::LITTLE_ENDIAN,
             16_909_060,
         ];
         yield 'signed long big endian' => [
             'readInt64',
             "\x01\x02\x03\x04\x05\x06\x07\x08",
-            BytesOrder::BIG_ENDIAN,
+            ByteOrder::BIG_ENDIAN,
             72_623_859_790_382_856,
         ];
         yield 'signed long little endian' => [
             'readInt64',
             "\x08\x07\x06\x05\x04\x03\x02\x01",
-            BytesOrder::LITTLE_ENDIAN,
+            ByteOrder::LITTLE_ENDIAN,
             72_623_859_790_382_856,
         ];
-        yield 'unsigned byte' => ['readUInt8', "\xfe", BytesOrder::NATIVE, 254];
-        yield 'unsigned short big endian' => ['readUInt16', "\x01\x02", BytesOrder::BIG_ENDIAN, 258];
-        yield 'unsigned short little endian' => ['readUInt16', "\x02\x01", BytesOrder::LITTLE_ENDIAN, 258];
-        yield 'unsigned short native endian' => ['readUInt16', pack('S', 258), BytesOrder::NATIVE, 258];
+        yield 'unsigned byte' => ['readUInt8', "\xfe", ByteOrder::NATIVE, 254];
+        yield 'unsigned short big endian' => ['readUInt16', "\x01\x02", ByteOrder::BIG_ENDIAN, 258];
+        yield 'unsigned short little endian' => ['readUInt16', "\x02\x01", ByteOrder::LITTLE_ENDIAN, 258];
+        yield 'unsigned short native endian' => ['readUInt16', pack('S', 258), ByteOrder::NATIVE, 258];
         yield 'unsigned int big endian' => [
             'readUInt32',
             "\x01\x02\x03\x04",
-            BytesOrder::BIG_ENDIAN,
+            ByteOrder::BIG_ENDIAN,
             16_909_060,
         ];
         yield 'unsigned int little endian' => [
             'readUInt32',
             "\x04\x03\x02\x01",
-            BytesOrder::LITTLE_ENDIAN,
+            ByteOrder::LITTLE_ENDIAN,
             16_909_060,
         ];
         yield 'unsigned int native endian' => [
             'readUInt32',
             pack('L', 16_909_060),
-            BytesOrder::NATIVE,
+            ByteOrder::NATIVE,
             16_909_060,
         ];
     }
@@ -79,7 +79,7 @@ final class ReaderTest extends TestCase
     public function testReadsIntegers(
         string $method,
         string $data,
-        BytesOrder $byteOrder,
+        ByteOrder $byteOrder,
         int $expected,
     ): void {
         $reader = new Reader(new MemoryStream($data), $byteOrder);
@@ -88,23 +88,23 @@ final class ReaderTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{string, string, BytesOrder, float}>
+     * @return iterable<string, array{string, string, ByteOrder, float}>
      */
     public static function floatingPointReads(): iterable
     {
-        yield 'float big endian' => ['readFloat', pack('G', 1.5), BytesOrder::BIG_ENDIAN, 1.5];
-        yield 'float little endian' => ['readFloat', pack('g', 1.5), BytesOrder::LITTLE_ENDIAN, 1.5];
-        yield 'float native endian' => ['readFloat', pack('f', 1.5), BytesOrder::NATIVE, 1.5];
-        yield 'double big endian' => ['readDouble', pack('E', -3.25), BytesOrder::BIG_ENDIAN, -3.25];
-        yield 'double little endian' => ['readDouble', pack('e', -3.25), BytesOrder::LITTLE_ENDIAN, -3.25];
-        yield 'double native endian' => ['readDouble', pack('d', -3.25), BytesOrder::NATIVE, -3.25];
+        yield 'float big endian' => ['readFloat', pack('G', 1.5), ByteOrder::BIG_ENDIAN, 1.5];
+        yield 'float little endian' => ['readFloat', pack('g', 1.5), ByteOrder::LITTLE_ENDIAN, 1.5];
+        yield 'float native endian' => ['readFloat', pack('f', 1.5), ByteOrder::NATIVE, 1.5];
+        yield 'double big endian' => ['readDouble', pack('E', -3.25), ByteOrder::BIG_ENDIAN, -3.25];
+        yield 'double little endian' => ['readDouble', pack('e', -3.25), ByteOrder::LITTLE_ENDIAN, -3.25];
+        yield 'double native endian' => ['readDouble', pack('d', -3.25), ByteOrder::NATIVE, -3.25];
     }
 
     #[DataProvider('floatingPointReads')]
     public function testReadsFloatingPointValues(
         string $method,
         string $data,
-        BytesOrder $byteOrder,
+        ByteOrder $byteOrder,
         float $expected,
     ): void {
         $stream = new MemoryStream($data);
@@ -115,24 +115,24 @@ final class ReaderTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{BytesOrder, string}>
+     * @return iterable<string, array{ByteOrder, string}>
      */
     public static function uint64Reads(): iterable
     {
         $bigEndian = "\x01\x02\x03\x04\x05\x06\x07\x08";
 
-        yield 'big endian' => [BytesOrder::BIG_ENDIAN, $bigEndian];
-        yield 'little endian' => [BytesOrder::LITTLE_ENDIAN, strrev($bigEndian)];
+        yield 'big endian' => [ByteOrder::BIG_ENDIAN, $bigEndian];
+        yield 'little endian' => [ByteOrder::LITTLE_ENDIAN, strrev($bigEndian)];
         yield 'native endian' => [
-            BytesOrder::NATIVE,
-            BytesOrder::NATIVE->resolve() === BytesOrder::BIG_ENDIAN
+            ByteOrder::NATIVE,
+            ByteOrder::NATIVE->resolve() === ByteOrder::BIG_ENDIAN
                 ? $bigEndian
                 : strrev($bigEndian),
         ];
     }
 
     #[DataProvider('uint64Reads')]
-    public function testReadsUInt64(BytesOrder $byteOrder, string $data): void
+    public function testReadsUInt64(ByteOrder $byteOrder, string $data): void
     {
         $reader = new Reader(new MemoryStream($data), $byteOrder);
 
@@ -230,7 +230,7 @@ final class ReaderTest extends TestCase
     {
         $reader = new Reader($stream = new MemoryStream("alpha\0omega"));
 
-        self::assertSame('alpha', $reader->readStringWithNullTerminator());
+        self::assertSame('alpha', $reader->readNullTerminatedString());
         self::assertSame(6, $stream->getPosition());
     }
 
@@ -241,46 +241,46 @@ final class ReaderTest extends TestCase
         $this->expectException(UnexpectedValueException::class);
         $this->expectExceptionMessage('Expected delimiter 0x00');
 
-        $reader->readStringWithNullTerminator();
+        $reader->readNullTerminatedString();
     }
 
     /**
-     * @return iterable<string, array{LengthPrefixSize, BytesOrder, string, string}>
+     * @return iterable<string, array{LengthPrefixSize, ByteOrder, string, string}>
      */
     public static function lengthPrefixedStrings(): iterable
     {
-        yield 'byte prefix' => [LengthPrefixSize::BYTE, BytesOrder::NATIVE, "\x03abc", 'abc'];
+        yield 'byte prefix' => [LengthPrefixSize::UINT8, ByteOrder::NATIVE, "\x03abc", 'abc'];
         yield 'short big endian' => [
-            LengthPrefixSize::SHORT,
-            BytesOrder::BIG_ENDIAN,
+            LengthPrefixSize::UINT16,
+            ByteOrder::BIG_ENDIAN,
             "\x00\x03abc",
             'abc',
         ];
         yield 'short little endian' => [
-            LengthPrefixSize::SHORT,
-            BytesOrder::LITTLE_ENDIAN,
+            LengthPrefixSize::UINT16,
+            ByteOrder::LITTLE_ENDIAN,
             "\x03\x00abc",
             'abc',
         ];
         yield 'int big endian' => [
-            LengthPrefixSize::INT,
-            BytesOrder::BIG_ENDIAN,
+            LengthPrefixSize::UINT32,
+            ByteOrder::BIG_ENDIAN,
             "\x00\x00\x00\x03abc",
             'abc',
         ];
-        yield 'empty string' => [LengthPrefixSize::BYTE, BytesOrder::NATIVE, "\x00", ''];
+        yield 'empty string' => [LengthPrefixSize::UINT8, ByteOrder::NATIVE, "\x00", ''];
     }
 
     #[DataProvider('lengthPrefixedStrings')]
     public function testReadsLengthPrefixedStrings(
         LengthPrefixSize $prefixSize,
-        BytesOrder $byteOrder,
+        ByteOrder $byteOrder,
         string $data,
         string $expected,
     ): void {
         $reader = new Reader(new MemoryStream($data), $byteOrder);
 
-        self::assertSame($expected, $reader->readStringWithLengthPrefix($prefixSize));
+        self::assertSame($expected, $reader->readLengthPrefixedString($prefixSize));
     }
 
     public function testReadsLengthPrefixedStringAtConfiguredLimit(): void
@@ -292,7 +292,7 @@ final class ReaderTest extends TestCase
 
         self::assertSame(
             'alpha',
-            $reader->readStringWithLengthPrefix(LengthPrefixSize::BYTE)
+            $reader->readLengthPrefixedString(LengthPrefixSize::UINT8)
         );
     }
 
@@ -305,9 +305,9 @@ final class ReaderTest extends TestCase
 
         self::assertSame(
             '',
-            $reader->readStringWithLengthPrefix(LengthPrefixSize::BYTE)
+            $reader->readLengthPrefixedString(LengthPrefixSize::UINT8)
         );
-        self::assertSame('', $reader->readStringWithNullTerminator());
+        self::assertSame('', $reader->readNullTerminatedString());
         self::assertSame('', $reader->readUntil('|'));
     }
 
@@ -317,7 +317,7 @@ final class ReaderTest extends TestCase
         $reader = new Reader($stream, maximumStringLength: 5);
 
         try {
-            $reader->readStringWithLengthPrefix(LengthPrefixSize::BYTE);
+            $reader->readLengthPrefixedString(LengthPrefixSize::UINT8);
             self::fail('Expected an OverflowException');
         } catch (OverflowException $exception) {
             self::assertStringContainsString('String length 6', $exception->getMessage());
@@ -369,7 +369,7 @@ final class ReaderTest extends TestCase
             {
             }
         };
-        $reader = new Reader($stream, BytesOrder::BIG_ENDIAN);
+        $reader = new Reader($stream, ByteOrder::BIG_ENDIAN);
 
         self::assertSame(16_909_060, $reader->readUInt32());
         self::assertSame(4, $stream->getPosition());
@@ -377,7 +377,7 @@ final class ReaderTest extends TestCase
 
     public function testRejectsTruncatedNumericValue(): void
     {
-        $reader = new Reader(new MemoryStream("\x01"), BytesOrder::BIG_ENDIAN);
+        $reader = new Reader(new MemoryStream("\x01"), ByteOrder::BIG_ENDIAN);
 
         $this->expectException(UnexpectedValueException::class);
         $this->expectExceptionMessage('Expected 4 bytes, received 1');
@@ -386,34 +386,34 @@ final class ReaderTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{string, string, BytesOrder, int}>
+     * @return iterable<string, array{string, string, ByteOrder, int}>
      */
     public static function truncatedFixedWidthValues(): iterable
     {
-        yield 'signed byte' => ['readInt8', '', BytesOrder::NATIVE, 1];
-        yield 'signed short' => ['readInt16', "\x01", BytesOrder::BIG_ENDIAN, 2];
+        yield 'signed byte' => ['readInt8', '', ByteOrder::NATIVE, 1];
+        yield 'signed short' => ['readInt16', "\x01", ByteOrder::BIG_ENDIAN, 2];
         yield 'signed long' => [
             'readInt64',
             str_repeat("\x01", 7),
-            BytesOrder::LITTLE_ENDIAN,
+            ByteOrder::LITTLE_ENDIAN,
             8,
         ];
         yield 'unsigned long long' => [
             'readUInt64',
             str_repeat("\x01", 7),
-            BytesOrder::BIG_ENDIAN,
+            ByteOrder::BIG_ENDIAN,
             8,
         ];
         yield 'float' => [
             'readFloat',
             substr(pack('G', 1.0), 1),
-            BytesOrder::BIG_ENDIAN,
+            ByteOrder::BIG_ENDIAN,
             strlen(pack('G', 1.0)),
         ];
         yield 'double' => [
             'readDouble',
             substr(pack('e', 1.0), 1),
-            BytesOrder::LITTLE_ENDIAN,
+            ByteOrder::LITTLE_ENDIAN,
             strlen(pack('e', 1.0)),
         ];
     }
@@ -422,7 +422,7 @@ final class ReaderTest extends TestCase
     public function testRejectsTruncatedFixedWidthValues(
         string $method,
         string $data,
-        BytesOrder $byteOrder,
+        ByteOrder $byteOrder,
         int $expectedLength,
     ): void {
         $reader = new Reader(new MemoryStream($data), $byteOrder);
@@ -462,6 +462,6 @@ final class ReaderTest extends TestCase
         $this->expectException(UnexpectedValueException::class);
         $this->expectExceptionMessage('Expected 5 bytes, received 2');
 
-        $reader->readStringWithLengthPrefix(LengthPrefixSize::BYTE);
+        $reader->readLengthPrefixedString(LengthPrefixSize::UINT8);
     }
 }
