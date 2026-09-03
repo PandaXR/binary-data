@@ -7,6 +7,15 @@ this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-09-03
+
+### Changed
+
+- Promoted the package to its first stable release. Public APIs are now covered by
+  Semantic Versioning compatibility guarantees.
+
+## [0.14.0] - 2026-09-03
+
 ### Added
 
 - A GitHub Pages documentation site with installation, usage, and API guides.
@@ -141,7 +150,9 @@ this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - File-stream implementation and public Reader, Writer, and Stream contracts.
 - Package-specific exception hierarchy.
 
-[Unreleased]: https://github.com/PandaXR/binary-data/compare/v0.13.0...HEAD
+[Unreleased]: https://github.com/PandaXR/binary-data/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/PandaXR/binary-data/compare/v0.14.0...v1.0.0
+[0.14.0]: https://github.com/PandaXR/binary-data/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/PandaXR/binary-data/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/PandaXR/binary-data/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/PandaXR/binary-data/compare/v0.10.0...v0.11.0
