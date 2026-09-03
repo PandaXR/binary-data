@@ -9,6 +9,7 @@ use Lxr\BinaryData\Enums\BytesOrder;
 use Lxr\BinaryData\Enums\LengthPrefixSize;
 use Lxr\BinaryData\Exceptions\InvalidArgumentException;
 use Lxr\BinaryData\Exceptions\OverflowException;
+use Lxr\BinaryData\Exceptions\RuntimeException;
 use Lxr\BinaryData\Exceptions\UnexpectedValueException;
 use Lxr\BinaryData\Reader;
 use Lxr\BinaryData\Tests\Support\MemoryStream;
@@ -295,6 +296,21 @@ final class ReaderTest extends TestCase
         );
     }
 
+    public function testReadsEmptyStringsWhenMaximumLengthIsZero(): void
+    {
+        $reader = new Reader(
+            new MemoryStream("\x00\0|"),
+            maximumStringLength: 0,
+        );
+
+        self::assertSame(
+            '',
+            $reader->readStringWithLengthPrefix(LengthPrefixSize::BYTE)
+        );
+        self::assertSame('', $reader->readStringWithNullTerminator());
+        self::assertSame('', $reader->readUntil('|'));
+    }
+
     public function testRejectsLengthPrefixAboveConfiguredLimitBeforeReadingPayload(): void
     {
         $stream = new MemoryStream("\x06abcdef");
@@ -367,6 +383,76 @@ final class ReaderTest extends TestCase
         $this->expectExceptionMessage('Expected 4 bytes, received 1');
 
         $reader->readUInt32();
+    }
+
+    /**
+     * @return iterable<string, array{string, string, BytesOrder, int}>
+     */
+    public static function truncatedFixedWidthValues(): iterable
+    {
+        yield 'signed byte' => ['readInt8', '', BytesOrder::NATIVE, 1];
+        yield 'signed short' => ['readInt16', "\x01", BytesOrder::BIG_ENDIAN, 2];
+        yield 'signed long' => [
+            'readInt64',
+            str_repeat("\x01", 7),
+            BytesOrder::LITTLE_ENDIAN,
+            8,
+        ];
+        yield 'unsigned long long' => [
+            'readUInt64',
+            str_repeat("\x01", 7),
+            BytesOrder::BIG_ENDIAN,
+            8,
+        ];
+        yield 'float' => [
+            'readFloat',
+            substr(pack('G', 1.0), 1),
+            BytesOrder::BIG_ENDIAN,
+            strlen(pack('G', 1.0)),
+        ];
+        yield 'double' => [
+            'readDouble',
+            substr(pack('e', 1.0), 1),
+            BytesOrder::LITTLE_ENDIAN,
+            strlen(pack('e', 1.0)),
+        ];
+    }
+
+    #[DataProvider('truncatedFixedWidthValues')]
+    public function testRejectsTruncatedFixedWidthValues(
+        string $method,
+        string $data,
+        BytesOrder $byteOrder,
+        int $expectedLength,
+    ): void {
+        $reader = new Reader(new MemoryStream($data), $byteOrder);
+
+        $this->expectException(UnexpectedValueException::class);
+        $this->expectExceptionMessage(
+            sprintf('Expected %d bytes, received %d', $expectedLength, strlen($data))
+        );
+
+        $reader->{$method}();
+    }
+
+    public function testPropagatesStreamReadFailure(): void
+    {
+        $failure = new RuntimeException('Synthetic read failure');
+        $stream = $this->createMock(StreamContract::class);
+        $stream
+            ->expects(self::once())
+            ->method('read')
+            ->with(1)
+            ->willThrowException($failure);
+
+        $reader = new Reader($stream);
+
+        try {
+            $reader->readInt8();
+            self::fail('Expected a RuntimeException');
+        } catch (RuntimeException $exception) {
+            self::assertSame($failure, $exception);
+        }
     }
 
     public function testRejectsTruncatedLengthPrefixedString(): void

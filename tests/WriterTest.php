@@ -329,6 +329,43 @@ final class WriterTest extends TestCase
         $writer->writeBytes('data');
     }
 
+    public function testRejectsInvalidWriteCountForEmptyData(): void
+    {
+        $stream = $this->createMock(StreamContract::class);
+        $stream
+            ->expects(self::once())
+            ->method('write')
+            ->with('')
+            ->willReturn(1);
+
+        $writer = new Writer($stream);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('invalid write count');
+
+        $writer->writeBytes('');
+    }
+
+    public function testPropagatesStreamWriteFailure(): void
+    {
+        $failure = new RuntimeException('Synthetic write failure');
+        $stream = $this->createMock(StreamContract::class);
+        $stream
+            ->expects(self::once())
+            ->method('write')
+            ->with('data')
+            ->willThrowException($failure);
+
+        $writer = new Writer($stream);
+
+        try {
+            $writer->writeBytes('data');
+            self::fail('Expected a RuntimeException');
+        } catch (RuntimeException $exception) {
+            self::assertSame($failure, $exception);
+        }
+    }
+
     public function testForwardsPositionOperations(): void
     {
         $stream = new MemoryStream('abcd');

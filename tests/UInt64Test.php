@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Lxr\BinaryData\Tests;
 
+use Lxr\BinaryData\Exceptions\InvalidArgumentException;
 use Lxr\BinaryData\Exceptions\OverflowException;
 use Lxr\BinaryData\ValueObjects\UInt64;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -11,6 +12,25 @@ use PHPUnit\Framework\TestCase;
 
 final class UInt64Test extends TestCase
 {
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function invalidByteLengths(): iterable
+    {
+        yield 'empty' => [''];
+        yield 'seven bytes' => [str_repeat("\0", 7)];
+        yield 'nine bytes' => [str_repeat("\0", 9)];
+    }
+
+    #[DataProvider('invalidByteLengths')]
+    public function testRejectsInvalidByteLength(string $bytes): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('exactly 8 bytes');
+
+        new UInt64($bytes);
+    }
+
     /**
      * @return iterable<string, array{string, string, string}>
      */

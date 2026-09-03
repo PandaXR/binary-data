@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 namespace Lxr\BinaryData\Tests;
 
+use Lxr\BinaryData\Enums\BytesOrder;
+use Lxr\BinaryData\Enums\LengthPrefixSize;
 use Lxr\BinaryData\Exceptions\InvalidArgumentException;
 use Lxr\BinaryData\Exceptions\RuntimeException;
+use Lxr\BinaryData\Reader;
 use Lxr\BinaryData\Streams\FileBinaryStream;
+use Lxr\BinaryData\ValueObjects\UInt64;
+use Lxr\BinaryData\Writer;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -52,6 +57,37 @@ final class FileBinaryStreamTest extends TestCase
         }
 
         self::assertSame("\x00\xaa\xbb\x03", file_get_contents($this->filePath));
+    }
+
+    public function testRoundTripsStructuredDataThroughBinaryFile(): void
+    {
+        $stream = new FileBinaryStream($this->filePath);
+
+        try {
+            $writer = new Writer($stream, BytesOrder::BIG_ENDIAN);
+            $writer->writeInt64(PHP_INT_MIN);
+            $writer->writeUInt64(new UInt64("\xff\xff\xff\xff\xff\xff\xff\xff"));
+            self::assertSame(
+                6,
+                $writer->writeStringWithLengthPrefix('data', LengthPrefixSize::SHORT)
+            );
+            self::assertSame(6, $writer->writeStringWithNullTerminator('alpha'));
+            $encodedLength = $writer->getPosition();
+
+            $reader = new Reader($stream, BytesOrder::BIG_ENDIAN);
+            $reader->setPosition(0);
+
+            self::assertSame(PHP_INT_MIN, $reader->readInt64());
+            self::assertSame('ffffffffffffffff', $reader->readUInt64()->toHex());
+            self::assertSame(
+                'data',
+                $reader->readStringWithLengthPrefix(LengthPrefixSize::SHORT)
+            );
+            self::assertSame('alpha', $reader->readStringWithNullTerminator());
+            self::assertSame($encodedLength, $reader->getPosition());
+        } finally {
+            $stream->close();
+        }
     }
 
     /**
