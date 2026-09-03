@@ -2,7 +2,7 @@
     "name": "lxr/binary-data",
     "description": "Package to work with binary data in PHP",
     "require-dev": {
-        "phpunit/phpunit": "^13.3",
+        "phpunit/phpunit": "^11.5",
         "squizlabs/php_codesniffer": "^4.0",
         "phpstan/phpstan": "^2.2"
     },
