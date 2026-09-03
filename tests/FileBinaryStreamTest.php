@@ -136,6 +136,36 @@ final class FileBinaryStreamTest extends TestCase
         $stream->close();
     }
 
+    public function testCloseReportsFlushFailureAndStillClosesTheStream(): void
+    {
+        $stream = new FileBinaryStream($this->filePath);
+        $file = new class ($this->filePath, 'r+b') extends \SplFileObject {
+            public function fflush(): bool
+            {
+                return false;
+            }
+        };
+        $fileProperty = new \ReflectionProperty(FileBinaryStream::class, 'file');
+        $fileProperty->setValue($stream, $file);
+
+        try {
+            $stream->close();
+            self::fail('Expected a RuntimeException');
+        } catch (RuntimeException $exception) {
+            self::assertSame(
+                'Failed to flush stream before closing',
+                $exception->getMessage()
+            );
+        }
+
+        $stream->close();
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Stream is closed');
+
+        $stream->getPosition();
+    }
+
     /**
      * @return iterable<string, array{string, list<mixed>}>
      */

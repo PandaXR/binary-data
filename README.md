@@ -173,7 +173,7 @@ interface StreamContract
 for fixed-size values and `readBytes()`, and throws if the stream ends before the requested
 value is complete. `write()` may report a partial write; `Writer` continues until the
 encoded value is complete and throws if the stream makes no progress. `close()` must be
-idempotent.
+idempotent and must flush buffered writes before releasing the underlying resource.
 
 Applications can depend on `ReaderContract` and `WriterContract` when they do not need
 the concrete implementations.

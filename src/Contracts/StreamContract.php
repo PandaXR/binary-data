@@ -61,9 +61,10 @@ interface StreamContract
      * Close the stream and release its underlying resources.
      *
      * Implementations must allow repeated calls without failing.
+     * Implementations with buffered writes must flush them before releasing the resource.
      *
      * @return void
-     * @throws RuntimeException When the stream cannot be closed
+     * @throws RuntimeException When pending data cannot be flushed or the stream cannot be closed
      */
     public function close(): void;
 }

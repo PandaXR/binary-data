@@ -131,15 +131,25 @@ class FileBinaryStream implements StreamContract
     }
 
     /**
-     * Close the stream and release any resources.
+     * Flush pending data, close the stream, and release its resources.
      *
-     * Repeated calls have no effect.
+     * Repeated calls have no effect, including after a flush failure.
      *
      * @return void
+     * @throws RuntimeException When pending data cannot be flushed
      */
     public function close(): void
     {
+        if ($this->file === null) {
+            return;
+        }
+
+        $file = $this->file;
         $this->file = null;
+
+        if (!$file->fflush()) {
+            throw new RuntimeException('Failed to flush stream before closing');
+        }
     }
 
     /**
