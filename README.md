@@ -22,3 +22,9 @@ range from `0` through `18446744073709551615` can be preserved without precision
 `UInt64::toInt()` is available only when the stored value is no greater than
 `PHP_INT_MAX`; otherwise it throws an `OverflowException`. Use
 `UInt64::toDecimalString()` or `UInt64::toHex()` when the value may exceed that limit.
+
+Floating-point encoding follows PHP's `pack()` and `unpack()` formats. Because PHP
+documents the sizes of `f`, `g`, `G`, `d`, `e`, and `E` as machine-dependent, the
+reader derives their encoded widths from the running PHP build instead of assuming
+four-byte floats and eight-byte doubles. Writer methods return the actual encoded
+byte count for these values.

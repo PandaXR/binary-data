@@ -246,7 +246,7 @@ class Reader implements ReaderContract
             BytesOrder::BIG_ENDIAN => 'G',
         };
 
-        $data = $this->readExactly(4);
+        $data = $this->readExactly(strlen(pack($format, 0.0)));
         return (float) $this->unpack($format, $data);
     }
 
@@ -263,7 +263,7 @@ class Reader implements ReaderContract
             BytesOrder::BIG_ENDIAN => 'E',
         };
 
-        $data = $this->readExactly(8);
+        $data = $this->readExactly(strlen(pack($format, 0.0)));
         return (float) $this->unpack($format, $data);
     }
 

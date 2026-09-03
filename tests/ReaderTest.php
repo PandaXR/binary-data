@@ -106,9 +106,11 @@ final class ReaderTest extends TestCase
         BytesOrder $byteOrder,
         float $expected,
     ): void {
-        $reader = new Reader(new MemoryStream($data), $byteOrder);
+        $stream = new MemoryStream($data);
+        $reader = new Reader($stream, $byteOrder);
 
         self::assertEqualsWithDelta($expected, $reader->{$method}(), 0.000_001);
+        self::assertSame(strlen($data), $stream->getPosition());
     }
 
     /**
