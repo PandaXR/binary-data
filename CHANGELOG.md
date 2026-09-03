@@ -7,19 +7,14 @@ this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.8.0] - 2026-09-03
+### Fixed
 
-### Added
+- `Reader::readBytes()` now collects partial stream reads until the requested byte count
+  is complete and rejects truncated input instead of returning it silently.
 
-- Comprehensive README with installation, usage, platform, and API guidance.
-- MIT license file.
-- Security support and private vulnerability-reporting policy.
-- Release changelog.
+## [0.9.0] - 2026-09-03
 
 ### Changed
-
-The following API renames are backward-incompatible and are intended for the next `0.x`
-minor release:
 
 - Renamed `BytesOrder` to `ByteOrder`.
 - Renamed length-prefix cases from `BYTE`, `SHORT`, and `INT` to `UINT8`, `UINT16`, and
@@ -29,6 +24,15 @@ minor release:
 - Renamed Reader and Writer constructor parameters to `$stream` and `$byteOrder`.
 - Clarified Writer return semantics: fixed-size and raw-byte methods return `void`, while
   floating-point and encoded-string methods return the total encoded byte count.
+
+## [0.8.0] - 2026-09-03
+
+### Added
+
+- Comprehensive README with installation, usage, platform, and API guidance.
+- MIT license file.
+- Security support and private vulnerability-reporting policy.
+- Release changelog.
 
 ## [0.7.0] - 2026-09-03
 
@@ -111,7 +115,9 @@ minor release:
 - File-stream implementation and public Reader, Writer, and Stream contracts.
 - Package-specific exception hierarchy.
 
-[Unreleased]: https://github.com/PandaXR/binary-data/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/PandaXR/binary-data/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/PandaXR/binary-data/compare/v0.8.0...v0.9.0
+[0.8.0]: https://github.com/PandaXR/binary-data/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/PandaXR/binary-data/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/PandaXR/binary-data/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/PandaXR/binary-data/compare/v0.5.0...v0.6.0

@@ -49,14 +49,22 @@ class Reader implements ReaderContract
     }
 
     /**
-     * Read raw bytes from the stream.
+     * Read an exact number of raw bytes from the stream.
      *
-     * @param int $length Number of bytes to read
-     * @return string Bytes read from the stream
+     * @param int $length Non-negative number of bytes to read
+     * @return string Requested binary data
+     * @throws InvalidArgumentException When the length is negative
+     * @throws UnexpectedValueException When the stream ends before all bytes are read
      */
     public function readBytes(int $length): string
     {
-        return $this->stream->read($length);
+        if ($length < 0) {
+            throw new InvalidArgumentException(
+                'Read length must be greater than or equal to zero'
+            );
+        }
+
+        return $this->readExactly($length);
     }
 
     /**

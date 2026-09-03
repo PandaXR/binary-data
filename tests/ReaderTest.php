@@ -153,6 +153,85 @@ final class ReaderTest extends TestCase
         self::assertSame("\xff", $reader->readBytes(1));
     }
 
+    public function testCollectsPartialChunksUntilRawReadIsComplete(): void
+    {
+        $stream = new class ('abcd') implements StreamContract {
+            private int $position = 0;
+
+            public function __construct(private readonly string $data)
+            {
+            }
+
+            public function getPosition(): int
+            {
+                return $this->position;
+            }
+
+            public function setPosition(int $position): void
+            {
+                $this->position = $position;
+            }
+
+            public function read(int $length): string
+            {
+                $chunk = substr($this->data, $this->position, min(1, $length));
+                $this->position += strlen($chunk);
+
+                return $chunk;
+            }
+
+            public function write(string $data): int
+            {
+                return 0;
+            }
+
+            public function close(): void
+            {
+            }
+        };
+        $reader = new Reader($stream);
+
+        self::assertSame('abcd', $reader->readBytes(4));
+        self::assertSame(4, $stream->getPosition());
+    }
+
+    public function testRejectsTruncatedRawRead(): void
+    {
+        $reader = new Reader(new MemoryStream('abc'));
+
+        $this->expectException(UnexpectedValueException::class);
+        $this->expectExceptionMessage('Expected 4 bytes, received 3');
+
+        $reader->readBytes(4);
+    }
+
+    public function testReadsZeroRawBytesWithoutAdvancingTheStream(): void
+    {
+        $stream = new MemoryStream('abc');
+        $reader = new Reader($stream);
+
+        self::assertSame('', $reader->readBytes(0));
+        self::assertSame(0, $stream->getPosition());
+    }
+
+    public function testRejectsNegativeRawReadLengthWithoutAdvancingTheStream(): void
+    {
+        $stream = new MemoryStream('abc');
+        $reader = new Reader($stream);
+
+        try {
+            $reader->readBytes(-1);
+            self::fail('Expected an InvalidArgumentException');
+        } catch (InvalidArgumentException $exception) {
+            self::assertSame(
+                'Read length must be greater than or equal to zero',
+                $exception->getMessage()
+            );
+        }
+
+        self::assertSame(0, $stream->getPosition());
+    }
+
     public function testReadsUntilDelimiterAndConsumesIt(): void
     {
         $reader = new Reader($stream = new MemoryStream('alpha|omega'));

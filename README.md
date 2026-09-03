@@ -169,9 +169,11 @@ interface StreamContract
 }
 ```
 
-`read()` may return fewer bytes at the end of the stream. `write()` may report a partial
-write; `Writer` continues until the encoded value is complete and throws if the stream
-makes no progress. `close()` must be idempotent.
+`read()` may return fewer bytes at the end of the stream. `Reader` collects partial chunks
+for fixed-size values and `readBytes()`, and throws if the stream ends before the requested
+value is complete. `write()` may report a partial write; `Writer` continues until the
+encoded value is complete and throws if the stream makes no progress. `close()` must be
+idempotent.
 
 Applications can depend on `ReaderContract` and `WriterContract` when they do not need
 the concrete implementations.

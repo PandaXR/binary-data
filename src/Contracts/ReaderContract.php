@@ -16,10 +16,12 @@ use Lxr\BinaryData\ValueObjects\UInt64;
 interface ReaderContract
 {
     /**
-     * Read raw bytes from the current stream position.
+     * Read an exact number of raw bytes from the current stream position.
      *
-     * @param int $length Number of bytes to read
-     * @return string Binary data read from the stream
+     * @param int $length Non-negative number of bytes to read
+     * @return string Requested binary data
+     * @throws InvalidArgumentException When the length is negative
+     * @throws UnexpectedValueException When the stream ends before all bytes are read
      */
     public function readBytes(int $length): string;
 
