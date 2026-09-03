@@ -32,6 +32,7 @@ class Writer implements WriterContract
 
     /**
      * Write raw bytes to the stream.
+     *
      * @param string $data Data to write
      * @return int Number of bytes written
      */
@@ -41,12 +42,16 @@ class Writer implements WriterContract
     }
 
     /**
-     * Write a single byte to the stream.
+     * Write an 8-bit signed integer to the stream.
+     *
      * @param int $value Value to write
      * @return int Number of bytes written
+     * @throws OverflowException When the value is outside the signed 8-bit range
      */
     public function writeInt8(int $value): int
     {
+        $this->assertIntegerInRange($value, -128, 127, 'signed 8-bit integer');
+
         $data = pack('c', $value);
         return $this->resource->write($data);
     }
@@ -56,9 +61,12 @@ class Writer implements WriterContract
      *
      * @param int $value Value to write
      * @return int Number of bytes written
+     * @throws OverflowException When the value is outside the signed 16-bit range
      */
     public function writeInt16(int $value): int
     {
+        $this->assertIntegerInRange($value, -32_768, 32_767, 'signed 16-bit integer');
+
         $data = $this->applyByteOrder(
             pack('s', $value)
         );
@@ -71,9 +79,17 @@ class Writer implements WriterContract
      *
      * @param int $value Value to write
      * @return int Number of bytes written
+     * @throws OverflowException When the value is outside the signed 32-bit range
      */
     public function writeInt32(int $value): int
     {
+        $this->assertIntegerInRange(
+            $value,
+            -2_147_483_648,
+            2_147_483_647,
+            'signed 32-bit integer'
+        );
+
         $data = $this->applyByteOrder(
             pack('l', $value)
         );
@@ -101,9 +117,12 @@ class Writer implements WriterContract
      *
      * @param int $value Value to write
      * @return int Number of bytes written
+     * @throws OverflowException When the value is outside the unsigned 8-bit range
      */
     public function writeUInt8(int $value): int
     {
+        $this->assertIntegerInRange($value, 0, 255, 'unsigned 8-bit integer');
+
         $data = pack('C', $value);
         return $this->resource->write($data);
     }
@@ -113,9 +132,12 @@ class Writer implements WriterContract
      *
      * @param int $value Value to write
      * @return int Number of bytes written
+     * @throws OverflowException When the value is outside the unsigned 16-bit range
      */
     public function writeUInt16(int $value): int
     {
+        $this->assertIntegerInRange($value, 0, 65_535, 'unsigned 16-bit integer');
+
         $format = match ($this->bytesOrder) {
             BytesOrder::NATIVE => 'S',
             BytesOrder::LITTLE_ENDIAN => 'v',
@@ -131,9 +153,17 @@ class Writer implements WriterContract
      *
      * @param int $value Value to write
      * @return int Number of bytes written
+     * @throws OverflowException When the value is outside the unsigned 32-bit range
      */
     public function writeUInt32(int $value): int
     {
+        $this->assertIntegerInRange(
+            $value,
+            0,
+            4_294_967_295,
+            'unsigned 32-bit integer'
+        );
+
         $format = match ($this->bytesOrder) {
             BytesOrder::NATIVE => 'L',
             BytesOrder::LITTLE_ENDIAN => 'V',
@@ -250,6 +280,35 @@ class Writer implements WriterContract
         }
 
         return $this->resource->write($value);
+    }
+
+    /**
+     * Ensure an integer can be represented by the requested binary type.
+     *
+     * @param int $value Value to validate
+     * @param int $minimum Smallest representable value
+     * @param int $maximum Largest representable value
+     * @param string $type Human-readable binary type
+     * @return void
+     * @throws OverflowException When the value is outside the representable range
+     */
+    private function assertIntegerInRange(
+        int $value,
+        int $minimum,
+        int $maximum,
+        string $type
+    ): void {
+        if ($value < $minimum || $value > $maximum) {
+            throw new OverflowException(
+                sprintf(
+                    'Value %d is outside the range %d to %d for a %s',
+                    $value,
+                    $minimum,
+                    $maximum,
+                    $type,
+                )
+            );
+        }
     }
 
     /**

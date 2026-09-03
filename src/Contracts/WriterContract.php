@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Lxr\BinaryData\Contracts;
 
 use Lxr\BinaryData\Enums\LengthPrefixSize;
+use Lxr\BinaryData\Exceptions\OverflowException;
 use Lxr\BinaryData\ValueObjects\UInt64;
 
 /**
@@ -25,6 +26,7 @@ interface WriterContract
      *
      * @param int $value Value to write
      * @return int Number of bytes written
+     * @throws OverflowException When the value is outside the signed 8-bit range
      */
     public function writeInt8(int $value): int;
 
@@ -33,6 +35,7 @@ interface WriterContract
      *
      * @param int $value Value to write
      * @return int Number of bytes written
+     * @throws OverflowException When the value is outside the signed 16-bit range
      */
     public function writeInt16(int $value): int;
 
@@ -41,6 +44,7 @@ interface WriterContract
      *
      * @param int $value Value to write
      * @return int Number of bytes written
+     * @throws OverflowException When the value is outside the signed 32-bit range
      */
     public function writeInt32(int $value): int;
 
@@ -57,6 +61,7 @@ interface WriterContract
      *
      * @param int $value Value to write
      * @return int Number of bytes written
+     * @throws OverflowException When the value is outside the unsigned 8-bit range
      */
     public function writeUInt8(int $value): int;
 
@@ -65,6 +70,7 @@ interface WriterContract
      *
      * @param int $value Value to write
      * @return int Number of bytes written
+     * @throws OverflowException When the value is outside the unsigned 16-bit range
      */
     public function writeUInt16(int $value): int;
 
@@ -73,6 +79,7 @@ interface WriterContract
      *
      * @param int $value Value to write
      * @return int Number of bytes written
+     * @throws OverflowException When the value is outside the unsigned 32-bit range
      */
     public function writeUInt32(int $value): int;
 
@@ -114,6 +121,7 @@ interface WriterContract
      * @param string $value String to write
      * @param LengthPrefixSize $lengthPrefixSize Width of the length prefix
      * @return int Number of string bytes written
+     * @throws OverflowException When the string length does not fit in the prefix
      */
     public function writeStringWithLengthPrefix(
         string $value,

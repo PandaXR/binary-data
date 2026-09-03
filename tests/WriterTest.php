@@ -94,6 +94,92 @@ final class WriterTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string}>
+     */
+    public static function integerBoundaries(): iterable
+    {
+        yield 'signed byte minimum' => ['writeInt8', -128, '80'];
+        yield 'signed byte maximum' => ['writeInt8', 127, '7f'];
+        yield 'signed short minimum' => ['writeInt16', -32_768, '8000'];
+        yield 'signed short maximum' => ['writeInt16', 32_767, '7fff'];
+        yield 'signed int minimum' => ['writeInt32', -2_147_483_648, '80000000'];
+        yield 'signed int maximum' => ['writeInt32', 2_147_483_647, '7fffffff'];
+        yield 'signed long minimum' => ['writeInt64', PHP_INT_MIN, '8000000000000000'];
+        yield 'signed long maximum' => ['writeInt64', PHP_INT_MAX, '7fffffffffffffff'];
+        yield 'unsigned byte minimum' => ['writeUInt8', 0, '00'];
+        yield 'unsigned byte maximum' => ['writeUInt8', 255, 'ff'];
+        yield 'unsigned short minimum' => ['writeUInt16', 0, '0000'];
+        yield 'unsigned short maximum' => ['writeUInt16', 65_535, 'ffff'];
+        yield 'unsigned int minimum' => ['writeUInt32', 0, '00000000'];
+        yield 'unsigned int maximum' => ['writeUInt32', 4_294_967_295, 'ffffffff'];
+    }
+
+    #[DataProvider('integerBoundaries')]
+    public function testWritesIntegerBoundaries(
+        string $method,
+        int $value,
+        string $expectedHex,
+    ): void {
+        $stream = new MemoryStream();
+        $writer = new Writer($stream, BytesOrder::BIG_ENDIAN);
+
+        self::assertSame(intdiv(strlen($expectedHex), 2), $writer->{$method}($value));
+        self::assertSame($expectedHex, bin2hex($stream->data));
+    }
+
+    /**
+     * @return iterable<string, array{string, int, int, int}>
+     */
+    public static function outOfRangeIntegers(): iterable
+    {
+        yield 'signed byte underflow' => ['writeInt8', -129, -128, 127];
+        yield 'signed byte overflow' => ['writeInt8', 128, -128, 127];
+        yield 'signed short underflow' => ['writeInt16', -32_769, -32_768, 32_767];
+        yield 'signed short overflow' => ['writeInt16', 32_768, -32_768, 32_767];
+        yield 'signed int underflow' => [
+            'writeInt32',
+            -2_147_483_649,
+            -2_147_483_648,
+            2_147_483_647,
+        ];
+        yield 'signed int overflow' => [
+            'writeInt32',
+            2_147_483_648,
+            -2_147_483_648,
+            2_147_483_647,
+        ];
+        yield 'unsigned byte underflow' => ['writeUInt8', -1, 0, 255];
+        yield 'unsigned byte overflow' => ['writeUInt8', 256, 0, 255];
+        yield 'unsigned short underflow' => ['writeUInt16', -1, 0, 65_535];
+        yield 'unsigned short overflow' => ['writeUInt16', 65_536, 0, 65_535];
+        yield 'unsigned int underflow' => ['writeUInt32', -1, 0, 4_294_967_295];
+        yield 'unsigned int overflow' => ['writeUInt32', 4_294_967_296, 0, 4_294_967_295];
+    }
+
+    #[DataProvider('outOfRangeIntegers')]
+    public function testRejectsOutOfRangeIntegerBeforeWriting(
+        string $method,
+        int $value,
+        int $minimum,
+        int $maximum,
+    ): void {
+        $stream = new MemoryStream();
+        $writer = new Writer($stream);
+
+        try {
+            $writer->{$method}($value);
+            self::fail('Expected an OverflowException');
+        } catch (OverflowException $exception) {
+            self::assertStringContainsString((string) $value, $exception->getMessage());
+            self::assertStringContainsString((string) $minimum, $exception->getMessage());
+            self::assertStringContainsString((string) $maximum, $exception->getMessage());
+        }
+
+        self::assertSame('', $stream->data);
+        self::assertSame(0, $stream->getPosition());
+    }
+
+    /**
      * @return iterable<string, array{BytesOrder, string}>
      */
     public static function uint64Writes(): iterable
