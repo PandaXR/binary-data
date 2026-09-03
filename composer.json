@@ -1,0 +1,47 @@
+{
+    "name": "lxr/binary-data",
+    "description": "Package to work with binary data in PHP",
+    "require-dev": {
+        "phpunit/phpunit": "^13.3",
+        "squizlabs/php_codesniffer": "^4.0",
+        "phpstan/phpstan": "^2.2"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Lxr\\BinaryData\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Lxr\\BinaryData\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit --colors=never",
+        "test:coverage": "phpunit --coverage-text --colors=never",
+        "analyse": "phpstan analyse src tests --no-progress",
+        "cs": "phpcs -q src tests",
+        "cs:fix": "phpcbf src tests",
+        "check:composer": "@composer validate --strict",
+        "check:autoload": "@composer dump-autoload --optimize --strict-psr --dry-run",
+        "check": [
+            "@check:composer",
+            "@check:autoload",
+            "@cs",
+            "@analyse",
+            "@test"
+        ]
+    },
+    "authors": [
+        {
+            "name": "Alexey Rodionov",
+            "email": "devrnd@mail.ru",
+            "homepage": "https://github.com/PandaXR"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {
+        "php": ">=8.2"
+    }
+}

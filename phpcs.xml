@@ -1,0 +1,162 @@
+<?xml version="1.0"?>
+<ruleset>
+    <arg name="basepath" value="."/>
+    <arg name="extensions" value="php"/>
+    <arg name="parallel" value="80"/>
+    <arg name="cache" value=".phpcs-cache"/>
+    <arg name="colors"/>
+
+    <!-- Show progress of the run and show sniff names -->
+    <arg value="ps"/>
+
+    <!-- Directories to be checked -->
+    <file>src</file>
+
+    <!-- PHP code MUST use the long <?php ?> tags or the short-echo <?= ?> tags; it MUST NOT use the other tag variations. -->
+    <rule ref="Generic.PHP.DisallowShortOpenTag"/>
+
+    <!-- PHP code MUST use only UTF-8 without BOM. -->
+    <rule ref="Generic.Files.ByteOrderMark"/>
+
+    <!-- Ensures that array are indented one tab stop. -->
+    <rule ref="Generic.Arrays.ArrayIndent"/>
+
+    <!-- Short array syntax must be used to define arrays. -->
+    <rule ref="Generic.Arrays.DisallowLongArraySyntax"/>
+
+    <!-- Reports errors if the same class or interface name is used in multiple files. -->
+    <rule ref="Generic.Classes.DuplicateClassName"/>
+
+    <!-- Detects unnecessary final modifiers inside of final classes. -->
+    <rule ref="Generic.CodeAnalysis.UnnecessaryFinalModifier"/>
+
+    <!-- Warns about FIXME comments. -->
+    <rule ref="Generic.Commenting.Fixme"/>
+
+    <!-- Warns about TODO comments. -->
+    <rule ref="Generic.Commenting.Todo"/>
+
+    <!-- Yoda conditions are disallowed. Like: If (null === $test) { ... } -->
+    <rule ref="Generic.ControlStructures.DisallowYodaConditions"/>
+
+    <!-- Verifies that inline control statements are not present. All control statements should use {} -->
+    <rule ref="Generic.ControlStructures.InlineControlStructure"/>
+
+    <!-- Tests that files are not executable. -->
+    <rule ref="Generic.Files.ExecutableFile"/>
+
+    <!-- Unix-style line endings are preferred ("\n" instead of "\r\n"). -->
+    <rule ref="Generic.Files.LineEndings"/>
+
+    <!-- There should be no space before and exactly one space, or a new line, after a comma when passing arguments to a function or method. -->
+    <rule ref="Generic.Functions.FunctionCallArgumentSpacing"/>
+
+    <!-- Multiple statements are not allowed on a single line. -->
+    <rule ref="Generic.Formatting.DisallowMultipleStatements"/>
+
+    <!-- Functions should not have a cyclomatic complexity greater than 20, and should try to stay below a complexity of 10. -->
+    <rule ref="Generic.Metrics.CyclomaticComplexity"/>
+
+    <!-- Functions should not have a nesting level greater than 10, and should try to stay below 5. -->
+    <rule ref="Generic.Metrics.NestingLevel"/>
+
+    <!-- Deprecated functions should not be used. -->
+    <rule ref="Generic.PHP.DeprecatedFunctions"/>
+
+    <!-- $_REQUEST should never be used due to the ambiguity created as to where the data is coming from. Use $_POST, $_GET, or $_COOKIE instead. -->
+    <rule ref="Generic.PHP.DisallowRequestSuperglobal"/>
+
+    <!-- The forbidden functions sizeof() and delete() should not be used. -->
+    <rule ref="Generic.PHP.ForbiddenFunctions"/>
+
+    <!-- All PHP keywords should be lowercase. -->
+    <rule ref="Generic.PHP.LowerCaseKeyword"/>
+
+    <!-- Throws an error or warning when any code prefixed with an asperand is encountered. -->
+    <rule ref="Generic.PHP.NoSilencedErrors"/>
+
+    <!-- The code should use valid PHP syntax. -->
+    <rule ref="Generic.PHP.Syntax"/>
+
+    <!-- Indentation for control structures, classes, and functions should be 4 spaces per level. -->
+    <rule ref="Generic.WhiteSpace.ScopeIndent"/>
+
+    <!-- Variable assignments should not be made within conditions. -->
+    <rule ref="Generic.CodeAnalysis.AssignmentInCondition"/>
+
+    <!-- Checks against empty PHP statements. -->
+    <rule ref="Generic.CodeAnalysis.EmptyPHPStatement"/>
+
+    <!-- Incrementers in nested loops should use different variable names. -->
+    <rule ref="Generic.CodeAnalysis.JumbledIncrementer"/>
+
+    <!-- Forbid mixing different binary boolean operators within a single expression without making precedence -->
+    <rule ref="Generic.CodeAnalysis.RequireExplicitBooleanOperatorPrecedence"/>
+
+    <!-- Bans the use of the backtick execution operator. -->
+    <rule ref="Generic.PHP.BacktickOperator"/>
+
+    <!-- Discourage the use of the PHP goto language construct. -->
+    <rule ref="Generic.PHP.DiscourageGoto"/>
+
+    <rule ref="Generic.Formatting.SpaceAfterCast"/>
+    <rule ref="Generic.NamingConventions.ConstructorName"/>
+    <rule ref="Generic.Strings.UnnecessaryStringConcat"/>
+
+    <!-- <rule ref="Squiz.Commenting.FunctionComment"/>
+    <rule ref="Squiz.Commenting.FunctionComment.SpacingAfterParamType">
+        <severity>0</severity>
+    </rule>
+    <rule ref="Squiz.Commenting.FunctionComment.SpacingAfterParamName">
+        <severity>0</severity>
+    </rule> -->
+
+    <!-- Class constants MUST be declared in all upper case with underscore separators. -->
+    <rule ref="Generic.NamingConventions.UpperCaseConstantName"/>
+
+    <!-- Visibility MUST be declared on all methods. -->
+    <rule ref="Squiz.Scope.MethodScope"/>
+
+    <!-- Class names MUST be declared in StudlyCaps. -->
+    <rule ref="Squiz.Classes.ValidClassName"/>
+
+    <!-- Ensures logical operators 'and' and 'or' are not used. -->
+    <rule ref="Squiz.Operators.ValidLogicalOperators"/>
+
+    <!-- Tests that the stars in a doc comment align correctly. -->
+    <rule ref="Squiz.Commenting.DocCommentAlignment"/>
+
+    <!-- Warns about code that can never been executed. -->
+    <rule ref="Squiz.PHP.NonExecutableCode"/>
+
+    <!-- Discourages the use of debug functions. -->
+    <rule ref="Squiz.PHP.DiscouragedFunctions"/>
+
+    <!-- The use of eval() is discouraged. -->
+    <rule ref="Squiz.PHP.Eval"/>
+
+    <!-- Checks for unneeded whitespace. -->
+    <rule ref="Squiz.WhiteSpace.SuperfluousWhitespace"/>
+
+    <!-- Method arguments with default values MUST go at the end of the argument list. -->
+    <rule ref="PEAR.Functions.ValidDefaultValue"/>
+
+    <!-- The closing ?> tag MUST be omitted from files containing only PHP. -->
+    <rule ref="Zend.Files.ClosingTag"/>
+
+    <rule ref="Generic.Files.LineLength">
+        <properties>
+            <property name="lineLimit" value="100"/>
+            <property name="ignoreComments" value="true"/>
+        </properties>
+    </rule>
+
+    <!-- Throws errors if tabs are used for indentation. -->
+    <rule ref="Generic.WhiteSpace.DisallowTabIndent"/>
+
+    <!-- A PHP file should either contain declarations with no side effects, or should just have logic (including side effects) with no declarations. -->
+    <rule ref="PSR1.Files.SideEffects"/>
+
+    <rule ref="PSR1.Classes.ClassDeclaration"/>
+    <rule ref="PSR12"/>
+</ruleset>

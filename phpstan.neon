@@ -1,0 +1,8 @@
+parameters:
+    level: 8
+
+    # PHP 8.2
+    phpVersion: 80200
+
+    paths:
+        - src
