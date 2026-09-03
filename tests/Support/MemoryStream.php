@@ -10,6 +10,8 @@ final class MemoryStream implements StreamContract
 {
     private int $position = 0;
 
+    public int $readCount = 0;
+
     public function __construct(public string $data = '')
     {
     }
@@ -26,6 +28,7 @@ final class MemoryStream implements StreamContract
 
     public function read(int $length): string
     {
+        $this->readCount++;
         $data = substr($this->data, $this->position, $length);
         $this->position += strlen($data);
 

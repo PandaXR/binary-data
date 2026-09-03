@@ -248,6 +248,30 @@ final class ReaderTest extends TestCase
         self::assertSame(10, $stream->getPosition());
     }
 
+    public function testReadsUntilDelimiterInBoundedChunksWithoutConsumingTrailingData(): void
+    {
+        $value = str_repeat('a', 10_000);
+        $stream = new MemoryStream($value . '<END>tail');
+        $reader = new Reader($stream, maximumStringLength: 20_000);
+
+        self::assertSame($value, $reader->readUntil('<END>'));
+        self::assertSame(2, $stream->readCount);
+        self::assertSame(10_005, $stream->getPosition());
+        self::assertSame('tail', $reader->readBytes(4));
+    }
+
+    public function testFindsDelimiterAcrossChunkBoundary(): void
+    {
+        $value = str_repeat('a', 8_190);
+        $stream = new MemoryStream($value . '<END>tail');
+        $reader = new Reader($stream, maximumStringLength: 10_000);
+
+        self::assertSame($value, $reader->readUntil('<END>'));
+        self::assertSame(2, $stream->readCount);
+        self::assertSame(8_195, $stream->getPosition());
+        self::assertSame('tail', $reader->readBytes(4));
+    }
+
     public function testRejectsEmptyDelimiterBeforeReading(): void
     {
         $stream = new MemoryStream('alpha');

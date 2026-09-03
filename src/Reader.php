@@ -26,6 +26,11 @@ class Reader implements ReaderContract
     public const DEFAULT_MAXIMUM_STRING_LENGTH = 16_777_216;
 
     /**
+     * Maximum number of bytes requested per delimiter-search read.
+     */
+    private const DELIMITER_READ_CHUNK_SIZE = 8_192;
+
+    /**
      * Construct new Reader instance.
      *
      * @param StreamContract $stream Stream to read from
@@ -326,10 +331,19 @@ class Reader implements ReaderContract
 
         $result = '';
         $delimiterLength = strlen($delimiter);
+        $maximumBufferedLength = $this->maximumStringLength > PHP_INT_MAX - $delimiterLength
+            ? PHP_INT_MAX
+            : $this->maximumStringLength + $delimiterLength;
 
         while (true) {
-            $char = $this->stream->read(1);
-            if ($char === '') {
+            $resultLength = strlen($result);
+            $readLength = min(
+                self::DELIMITER_READ_CHUNK_SIZE,
+                $maximumBufferedLength - $resultLength,
+            );
+            $chunk = $this->stream->read($readLength);
+
+            if ($chunk === '') {
                 $this->assertStringLengthWithinLimit(strlen($result));
 
                 if ($requireDelimiter) {
@@ -344,13 +358,27 @@ class Reader implements ReaderContract
                 return $result;
             }
 
-            $result .= $char;
+            $result .= $chunk;
+            $delimiterPosition = strpos(
+                $result,
+                $delimiter,
+                max(0, $resultLength - $delimiterLength + 1),
+            );
 
-            if (str_ends_with($result, $delimiter)) {
-                $valueLength = strlen($result) - $delimiterLength;
-                $this->assertStringLengthWithinLimit($valueLength);
+            if ($delimiterPosition !== false) {
+                $bytesAfterDelimiter = strlen($result)
+                    - $delimiterPosition
+                    - $delimiterLength;
 
-                return substr($result, 0, $valueLength);
+                if ($bytesAfterDelimiter > 0) {
+                    $this->stream->setPosition(
+                        $this->stream->getPosition() - $bytesAfterDelimiter
+                    );
+                }
+
+                $this->assertStringLengthWithinLimit($delimiterPosition);
+
+                return substr($result, 0, $delimiterPosition);
             }
 
             $possibleDelimiterLength = min($delimiterLength - 1, strlen($result));

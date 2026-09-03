@@ -9,6 +9,13 @@ this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Delimiter-based reads now scan bounded chunks instead of issuing one stream read per
+  byte, preventing CPU amplification on large untrusted inputs.
+
+## [0.12.0] - 2026-09-03
+
+### Fixed
+
 - `FileBinaryStream::close()` now flushes pending writes and reports flush failures using
   the package `RuntimeException` before releasing the stream.
 
@@ -128,7 +135,8 @@ this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - File-stream implementation and public Reader, Writer, and Stream contracts.
 - Package-specific exception hierarchy.
 
-[Unreleased]: https://github.com/PandaXR/binary-data/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/PandaXR/binary-data/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/PandaXR/binary-data/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/PandaXR/binary-data/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/PandaXR/binary-data/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/PandaXR/binary-data/compare/v0.8.0...v0.9.0
