@@ -1,0 +1,17 @@
+title: Binary Data
+description: Strictly typed binary data reading and writing for PHP
+url: https://pandaxr.github.io
+baseurl: /binary-data
+repository: PandaXR/binary-data
+theme: minima
+
+header_pages:
+  - getting-started.md
+  - guide.md
+  - api.md
+
+minima:
+  skin: auto
+
+exclude:
+  - README.md

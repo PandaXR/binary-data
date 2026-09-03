@@ -1,6 +1,7 @@
 # Binary Data
 
 [![CI](https://github.com/PandaXR/binary-data/actions/workflows/ci.yml/badge.svg)](https://github.com/PandaXR/binary-data/actions/workflows/ci.yml)
+[![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue.svg)](https://pandaxr.github.io/binary-data/)
 [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777bb4.svg)](https://www.php.net/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -31,6 +32,9 @@ package.
 ```bash
 composer require lxr/binary-data
 ```
+
+The complete guide and API reference are available on the
+[documentation site](https://pandaxr.github.io/binary-data/).
 
 ## Quick start
 
