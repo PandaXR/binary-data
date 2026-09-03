@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Lxr\BinaryData\Contracts;
 
 use Lxr\BinaryData\Enums\LengthPrefixSize;
+use Lxr\BinaryData\Exceptions\InvalidArgumentException;
 use Lxr\BinaryData\Exceptions\OverflowException;
 use Lxr\BinaryData\ValueObjects\UInt64;
 
@@ -112,6 +113,7 @@ interface WriterContract
      *
      * @param string $value String to write
      * @return int Number of bytes written
+     * @throws InvalidArgumentException When the string contains a null byte
      */
     public function writeStringWithNullTerminator(string $value): int;
 

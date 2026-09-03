@@ -6,6 +6,7 @@ namespace Lxr\BinaryData\Tests;
 
 use Lxr\BinaryData\Enums\BytesOrder;
 use Lxr\BinaryData\Enums\LengthPrefixSize;
+use Lxr\BinaryData\Exceptions\InvalidArgumentException;
 use Lxr\BinaryData\Exceptions\OverflowException;
 use Lxr\BinaryData\Tests\Support\MemoryStream;
 use Lxr\BinaryData\ValueObjects\UInt64;
@@ -214,6 +215,20 @@ final class WriterTest extends TestCase
 
         self::assertSame(6, $writer->writeStringWithNullTerminator('alpha'));
         self::assertSame("alpha\0", $stream->data);
+    }
+
+    public function testRejectsEmbeddedNullByteBeforeWriting(): void
+    {
+        $stream = new MemoryStream();
+        $writer = new Writer($stream);
+
+        try {
+            $writer->writeStringWithNullTerminator("alpha\0omega");
+            self::fail('Expected an InvalidArgumentException');
+        } catch (InvalidArgumentException) {
+            self::assertSame('', $stream->data);
+            self::assertSame(0, $stream->getPosition());
+        }
     }
 
     public function testForwardsPositionOperations(): void

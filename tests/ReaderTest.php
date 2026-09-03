@@ -7,6 +7,8 @@ namespace Lxr\BinaryData\Tests;
 use Lxr\BinaryData\Contracts\StreamContract;
 use Lxr\BinaryData\Enums\BytesOrder;
 use Lxr\BinaryData\Enums\LengthPrefixSize;
+use Lxr\BinaryData\Exceptions\InvalidArgumentException;
+use Lxr\BinaryData\Exceptions\OverflowException;
 use Lxr\BinaryData\Exceptions\UnexpectedValueException;
 use Lxr\BinaryData\Reader;
 use Lxr\BinaryData\Tests\Support\MemoryStream;
@@ -156,11 +158,69 @@ final class ReaderTest extends TestCase
         self::assertSame(6, $stream->getPosition());
     }
 
+    public function testReadsUntilMultiByteDelimiterAndConsumesIt(): void
+    {
+        $reader = new Reader($stream = new MemoryStream('alpha<END>omega'));
+
+        self::assertSame('alpha', $reader->readUntil('<END>'));
+        self::assertSame(10, $stream->getPosition());
+    }
+
+    public function testRejectsEmptyDelimiterBeforeReading(): void
+    {
+        $stream = new MemoryStream('alpha');
+        $reader = new Reader($stream);
+
+        try {
+            $reader->readUntil('');
+            self::fail('Expected an InvalidArgumentException');
+        } catch (InvalidArgumentException) {
+            self::assertSame(0, $stream->getPosition());
+        }
+    }
+
     public function testReadsUntilEndOfStreamWhenDelimiterIsMissing(): void
     {
         $reader = new Reader(new MemoryStream('alpha'));
 
         self::assertSame('alpha', $reader->readUntil('|'));
+    }
+
+    public function testReadsDelimitedStringAtConfiguredLimit(): void
+    {
+        $reader = new Reader(
+            new MemoryStream('alpha|omega'),
+            maximumStringLength: 5,
+        );
+
+        self::assertSame('alpha', $reader->readUntil('|'));
+    }
+
+    public function testRejectsDelimitedStringAboveConfiguredLimit(): void
+    {
+        $stream = new MemoryStream('alphab|omega');
+        $reader = new Reader($stream, maximumStringLength: 5);
+
+        try {
+            $reader->readUntil('|');
+            self::fail('Expected an OverflowException');
+        } catch (OverflowException $exception) {
+            self::assertStringContainsString('configured maximum of 5 bytes', $exception->getMessage());
+        }
+
+        self::assertSame(6, $stream->getPosition());
+    }
+
+    public function testCountsPartialDelimiterAsPayloadAtEndOfStream(): void
+    {
+        $reader = new Reader(
+            new MemoryStream('alpha:'),
+            maximumStringLength: 5,
+        );
+
+        $this->expectException(OverflowException::class);
+
+        $reader->readUntil('::');
     }
 
     public function testReadsNullTerminatedString(): void
@@ -169,6 +229,16 @@ final class ReaderTest extends TestCase
 
         self::assertSame('alpha', $reader->readStringWithNullTerminator());
         self::assertSame(6, $stream->getPosition());
+    }
+
+    public function testRejectsNullTerminatedStringWithoutTerminator(): void
+    {
+        $reader = new Reader(new MemoryStream('alpha'));
+
+        $this->expectException(UnexpectedValueException::class);
+        $this->expectExceptionMessage('Expected delimiter 0x00');
+
+        $reader->readStringWithNullTerminator();
     }
 
     /**
@@ -208,6 +278,41 @@ final class ReaderTest extends TestCase
         $reader = new Reader(new MemoryStream($data), $byteOrder);
 
         self::assertSame($expected, $reader->readStringWithLengthPrefix($prefixSize));
+    }
+
+    public function testReadsLengthPrefixedStringAtConfiguredLimit(): void
+    {
+        $reader = new Reader(
+            new MemoryStream("\x05alpha"),
+            maximumStringLength: 5,
+        );
+
+        self::assertSame(
+            'alpha',
+            $reader->readStringWithLengthPrefix(LengthPrefixSize::BYTE)
+        );
+    }
+
+    public function testRejectsLengthPrefixAboveConfiguredLimitBeforeReadingPayload(): void
+    {
+        $stream = new MemoryStream("\x06abcdef");
+        $reader = new Reader($stream, maximumStringLength: 5);
+
+        try {
+            $reader->readStringWithLengthPrefix(LengthPrefixSize::BYTE);
+            self::fail('Expected an OverflowException');
+        } catch (OverflowException $exception) {
+            self::assertStringContainsString('String length 6', $exception->getMessage());
+        }
+
+        self::assertSame(1, $stream->getPosition());
+    }
+
+    public function testRejectsNegativeMaximumStringLength(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        new Reader(new MemoryStream(), maximumStringLength: -1);
     }
 
     public function testCollectsPartialChunksUntilValueIsComplete(): void

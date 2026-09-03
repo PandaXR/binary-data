@@ -8,6 +8,7 @@ use Lxr\BinaryData\Contracts\StreamContract;
 use Lxr\BinaryData\Contracts\WriterContract;
 use Lxr\BinaryData\Enums\BytesOrder;
 use Lxr\BinaryData\Enums\LengthPrefixSize;
+use Lxr\BinaryData\Exceptions\InvalidArgumentException;
 use Lxr\BinaryData\Exceptions\LogicException;
 use Lxr\BinaryData\Exceptions\OverflowException;
 use Lxr\BinaryData\Traits\ByteOrderTrait;
@@ -234,9 +235,16 @@ class Writer implements WriterContract
      *
      * @param string $value String to write
      * @return int Number of bytes written
+     * @throws InvalidArgumentException When the string contains a null byte
      */
     public function writeStringWithNullTerminator(string $value): int
     {
+        if (str_contains($value, "\0")) {
+            throw new InvalidArgumentException(
+                'Null-terminated strings must not contain null bytes'
+            );
+        }
+
         $data = $value . "\0";
         return $this->resource->write($data);
     }

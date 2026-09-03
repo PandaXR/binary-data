@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Lxr\BinaryData\Contracts;
 
 use Lxr\BinaryData\Enums\LengthPrefixSize;
+use Lxr\BinaryData\Exceptions\InvalidArgumentException;
+use Lxr\BinaryData\Exceptions\OverflowException;
+use Lxr\BinaryData\Exceptions\UnexpectedValueException;
 use Lxr\BinaryData\ValueObjects\UInt64;
 
 /**
@@ -25,6 +28,8 @@ interface ReaderContract
      *
      * @param string $delimiter Delimiter that terminates the read
      * @return string Bytes preceding the delimiter
+     * @throws InvalidArgumentException When the delimiter is empty
+     * @throws OverflowException When the configured maximum string length is exceeded
      */
     public function readUntil(string $delimiter): string;
 
@@ -103,6 +108,8 @@ interface ReaderContract
      *
      * @param LengthPrefixSize $prefixSize Width of the length prefix
      * @return string String read from the stream
+     * @throws OverflowException When the configured maximum string length is exceeded
+     * @throws UnexpectedValueException When the stream ends before the string is complete
      */
     public function readStringWithLengthPrefix(
         LengthPrefixSize $prefixSize = LengthPrefixSize::INT
@@ -112,6 +119,8 @@ interface ReaderContract
      * Read a null-terminated string.
      *
      * @return string String preceding the null terminator
+     * @throws OverflowException When the configured maximum string length is exceeded
+     * @throws UnexpectedValueException When the stream ends before the null terminator
      */
     public function readStringWithNullTerminator(): string;
 
