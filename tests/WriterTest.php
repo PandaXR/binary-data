@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Lxr\BinaryData\Tests;
 
+use Lxr\BinaryData\Contracts\StreamContract;
 use Lxr\BinaryData\Enums\BytesOrder;
 use Lxr\BinaryData\Enums\LengthPrefixSize;
 use Lxr\BinaryData\Exceptions\InvalidArgumentException;
 use Lxr\BinaryData\Exceptions\OverflowException;
+use Lxr\BinaryData\Exceptions\RuntimeException;
 use Lxr\BinaryData\Tests\Support\MemoryStream;
 use Lxr\BinaryData\ValueObjects\UInt64;
 use Lxr\BinaryData\Writer;
@@ -90,7 +92,14 @@ final class WriterTest extends TestCase
         $stream = new MemoryStream();
         $writer = new Writer($stream, $byteOrder);
 
-        self::assertSame(strlen($expected), $writer->{$method}($value));
+        $result = $writer->{$method}($value);
+
+        if (in_array($method, ['writeFloat', 'writeDouble'], true)) {
+            self::assertSame(strlen($expected), $result);
+        } else {
+            self::assertNull($result);
+        }
+
         self::assertSame($expected, $stream->data);
     }
 
@@ -124,7 +133,7 @@ final class WriterTest extends TestCase
         $stream = new MemoryStream();
         $writer = new Writer($stream, BytesOrder::BIG_ENDIAN);
 
-        self::assertSame(intdiv(strlen($expectedHex), 2), $writer->{$method}($value));
+        $writer->{$method}($value);
         self::assertSame($expectedHex, bin2hex($stream->data));
     }
 
@@ -204,7 +213,7 @@ final class WriterTest extends TestCase
         $writer = new Writer($stream, $byteOrder);
         $value = new UInt64("\x01\x02\x03\x04\x05\x06\x07\x08");
 
-        self::assertSame(8, $writer->writeUInt64($value));
+        $writer->writeUInt64($value);
         self::assertSame($expected, $stream->data);
     }
 
@@ -231,6 +240,95 @@ final class WriterTest extends TestCase
         }
     }
 
+    public function testCompletesPartialWrites(): void
+    {
+        $writtenData = '';
+        $stream = $this->createMock(StreamContract::class);
+        $stream
+            ->expects(self::exactly(3))
+            ->method('write')
+            ->willReturnCallback(
+                static function (string $data) use (&$writtenData): int {
+                    $chunk = substr($data, 0, 2);
+                    $writtenData .= $chunk;
+                    return strlen($chunk);
+                }
+            );
+
+        $writer = new Writer($stream);
+
+        $writer->writeBytes('abcdef');
+        self::assertSame('abcdef', $writtenData);
+    }
+
+    public function testCompletesPartialLengthPrefixedWrite(): void
+    {
+        $writtenData = '';
+        $stream = $this->createMock(StreamContract::class);
+        $stream
+            ->expects(self::exactly(4))
+            ->method('write')
+            ->willReturnCallback(
+                static function (string $data) use (&$writtenData): int {
+                    $chunk = substr($data, 0, 1);
+                    $writtenData .= $chunk;
+                    return strlen($chunk);
+                }
+            );
+
+        $writer = new Writer($stream);
+
+        self::assertSame(
+            4,
+            $writer->writeStringWithLengthPrefix('abc', LengthPrefixSize::BYTE)
+        );
+        self::assertSame("\x03abc", $writtenData);
+    }
+
+    public function testRejectsWriteThatMakesNoProgress(): void
+    {
+        $stream = $this->createMock(StreamContract::class);
+        $stream
+            ->expects(self::once())
+            ->method('write')
+            ->with('data')
+            ->willReturn(0);
+
+        $writer = new Writer($stream);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('no progress was made');
+
+        $writer->writeBytes('data');
+    }
+
+    /**
+     * @return iterable<string, array{int}>
+     */
+    public static function invalidWriteCounts(): iterable
+    {
+        yield 'negative count' => [-1];
+        yield 'count above input length' => [5];
+    }
+
+    #[DataProvider('invalidWriteCounts')]
+    public function testRejectsInvalidWriteCount(int $bytesWritten): void
+    {
+        $stream = $this->createMock(StreamContract::class);
+        $stream
+            ->expects(self::once())
+            ->method('write')
+            ->with('data')
+            ->willReturn($bytesWritten);
+
+        $writer = new Writer($stream);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('invalid write count');
+
+        $writer->writeBytes('data');
+    }
+
     public function testForwardsPositionOperations(): void
     {
         $stream = new MemoryStream('abcd');
@@ -239,7 +337,7 @@ final class WriterTest extends TestCase
         $writer->setPosition(2);
 
         self::assertSame(2, $writer->getPosition());
-        self::assertSame(1, $writer->writeBytes('X'));
+        $writer->writeBytes('X');
         self::assertSame('abXd', $stream->data);
     }
 
@@ -266,7 +364,7 @@ final class WriterTest extends TestCase
 
         $bytesWritten = $writer->writeStringWithLengthPrefix($value, $prefixSize);
 
-        self::assertSame($length, $bytesWritten);
+        self::assertSame($prefixSize->value + $length, $bytesWritten);
         self::assertSame($expectedPrefix . $value, $stream->data);
     }
 

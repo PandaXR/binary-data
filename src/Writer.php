@@ -11,6 +11,7 @@ use Lxr\BinaryData\Enums\LengthPrefixSize;
 use Lxr\BinaryData\Exceptions\InvalidArgumentException;
 use Lxr\BinaryData\Exceptions\LogicException;
 use Lxr\BinaryData\Exceptions\OverflowException;
+use Lxr\BinaryData\Exceptions\RuntimeException;
 use Lxr\BinaryData\Traits\ByteOrderTrait;
 use Lxr\BinaryData\ValueObjects\UInt64;
 
@@ -35,36 +36,36 @@ class Writer implements WriterContract
      * Write raw bytes to the stream.
      *
      * @param string $data Data to write
-     * @return int Number of bytes written
+     * @return void
      */
-    public function writeBytes(string $data): int
+    public function writeBytes(string $data): void
     {
-        return $this->resource->write($data);
+        $this->writeExactly($data);
     }
 
     /**
      * Write an 8-bit signed integer to the stream.
      *
      * @param int $value Value to write
-     * @return int Number of bytes written
+     * @return void
      * @throws OverflowException When the value is outside the signed 8-bit range
      */
-    public function writeInt8(int $value): int
+    public function writeInt8(int $value): void
     {
         $this->assertIntegerInRange($value, -128, 127, 'signed 8-bit integer');
 
         $data = pack('c', $value);
-        return $this->resource->write($data);
+        $this->writeExactly($data);
     }
 
     /**
      * Write a 16-bit signed integer to the stream.
      *
      * @param int $value Value to write
-     * @return int Number of bytes written
+     * @return void
      * @throws OverflowException When the value is outside the signed 16-bit range
      */
-    public function writeInt16(int $value): int
+    public function writeInt16(int $value): void
     {
         $this->assertIntegerInRange($value, -32_768, 32_767, 'signed 16-bit integer');
 
@@ -72,17 +73,17 @@ class Writer implements WriterContract
             pack('s', $value)
         );
 
-        return $this->resource->write($data);
+        $this->writeExactly($data);
     }
 
     /**
      * Write a 32-bit signed integer to the stream.
      *
      * @param int $value Value to write
-     * @return int Number of bytes written
+     * @return void
      * @throws OverflowException When the value is outside the signed 32-bit range
      */
-    public function writeInt32(int $value): int
+    public function writeInt32(int $value): void
     {
         $this->assertIntegerInRange(
             $value,
@@ -95,47 +96,47 @@ class Writer implements WriterContract
             pack('l', $value)
         );
 
-        return $this->resource->write($data);
+        $this->writeExactly($data);
     }
 
     /**
      * Write a 64-bit signed integer to the stream.
      *
      * @param int $value Value to write
-     * @return int Number of bytes written
+     * @return void
      */
-    public function writeInt64(int $value): int
+    public function writeInt64(int $value): void
     {
         $data = $this->applyByteOrder(
             pack('q', $value)
         );
 
-        return $this->resource->write($data);
+        $this->writeExactly($data);
     }
 
     /**
      * Write an unsigned 8-bit integer to the stream.
      *
      * @param int $value Value to write
-     * @return int Number of bytes written
+     * @return void
      * @throws OverflowException When the value is outside the unsigned 8-bit range
      */
-    public function writeUInt8(int $value): int
+    public function writeUInt8(int $value): void
     {
         $this->assertIntegerInRange($value, 0, 255, 'unsigned 8-bit integer');
 
         $data = pack('C', $value);
-        return $this->resource->write($data);
+        $this->writeExactly($data);
     }
 
     /**
      * Write an unsigned 16-bit integer to the stream.
      *
      * @param int $value Value to write
-     * @return int Number of bytes written
+     * @return void
      * @throws OverflowException When the value is outside the unsigned 16-bit range
      */
-    public function writeUInt16(int $value): int
+    public function writeUInt16(int $value): void
     {
         $this->assertIntegerInRange($value, 0, 65_535, 'unsigned 16-bit integer');
 
@@ -146,17 +147,17 @@ class Writer implements WriterContract
         };
 
         $data = pack($format, $value);
-        return $this->resource->write($data);
+        $this->writeExactly($data);
     }
 
     /**
      * Write an unsigned 32-bit integer to the stream.
      *
      * @param int $value Value to write
-     * @return int Number of bytes written
+     * @return void
      * @throws OverflowException When the value is outside the unsigned 32-bit range
      */
-    public function writeUInt32(int $value): int
+    public function writeUInt32(int $value): void
     {
         $this->assertIntegerInRange(
             $value,
@@ -172,16 +173,16 @@ class Writer implements WriterContract
         };
 
         $data = pack($format, $value);
-        return $this->resource->write($data);
+        $this->writeExactly($data);
     }
 
     /**
      * Write an unsigned 64-bit integer to the stream.
      *
      * @param UInt64 $value Value to write
-     * @return int Number of bytes written
+     * @return void
      */
-    public function writeUInt64(UInt64 $value): int
+    public function writeUInt64(UInt64 $value): void
     {
         $data = match ($this->bytesOrder->resolve()) {
             BytesOrder::BIG_ENDIAN => $value->toBigEndianBytes(),
@@ -191,14 +192,14 @@ class Writer implements WriterContract
             ),
         };
 
-        return $this->resource->write($data);
+        $this->writeExactly($data);
     }
 
     /**
      * Write a single-precision floating-point value to the stream.
      *
      * @param float $value Value to write
-     * @return int Number of bytes written
+     * @return int Number of encoded bytes written
      */
     public function writeFloat(float $value): int
     {
@@ -209,14 +210,16 @@ class Writer implements WriterContract
         };
 
         $data = pack($format, $value);
-        return $this->resource->write($data);
+        $this->writeExactly($data);
+
+        return strlen($data);
     }
 
     /**
      * Write a double-precision floating-point value to the stream.
      *
      * @param float $value Value to write
-     * @return int Number of bytes written
+     * @return int Number of encoded bytes written
      */
     public function writeDouble(float $value): int
     {
@@ -227,14 +230,16 @@ class Writer implements WriterContract
         };
 
         $data = pack($format, $value);
-        return $this->resource->write($data);
+        $this->writeExactly($data);
+
+        return strlen($data);
     }
 
     /**
      * Write a null-terminated string to the stream.
      *
      * @param string $value String to write
-     * @return int Number of bytes written
+     * @return int Number of encoded bytes written, including the null terminator
      * @throws InvalidArgumentException When the string contains a null byte
      */
     public function writeStringWithNullTerminator(string $value): int
@@ -246,7 +251,9 @@ class Writer implements WriterContract
         }
 
         $data = $value . "\0";
-        return $this->resource->write($data);
+        $this->writeExactly($data);
+
+        return strlen($data);
     }
 
     /**
@@ -254,7 +261,7 @@ class Writer implements WriterContract
      *
      * @param string $value String to write
      * @param LengthPrefixSize $lengthPrefixSize Size of the length prefix
-     * @return int Number of string bytes written
+     * @return int Number of encoded bytes written, including the length prefix
      * @throws OverflowException When the string length does not fit in the prefix
      */
     public function writeStringWithLengthPrefix(
@@ -287,7 +294,51 @@ class Writer implements WriterContract
                 break;
         }
 
-        return $this->resource->write($value);
+        $this->writeExactly($value);
+
+        return $lengthPrefixSize->value + $length;
+    }
+
+    /**
+     * Write an exact number of bytes to the stream.
+     *
+     * @param string $data Data to write
+     * @return void
+     * @throws RuntimeException When the stream cannot write all bytes
+     */
+    private function writeExactly(string $data): void
+    {
+        $length = strlen($data);
+        $totalBytesWritten = 0;
+
+        if ($length === 0) {
+            $bytesWritten = $this->resource->write('');
+
+            if ($bytesWritten !== 0) {
+                throw new RuntimeException(
+                    sprintf('Stream returned an invalid write count of %d', $bytesWritten)
+                );
+            }
+
+            return;
+        }
+
+        while ($totalBytesWritten < $length) {
+            $remainingData = substr($data, $totalBytesWritten);
+            $bytesWritten = $this->resource->write($remainingData);
+
+            if ($bytesWritten < 0 || $bytesWritten > strlen($remainingData)) {
+                throw new RuntimeException(
+                    sprintf('Stream returned an invalid write count of %d', $bytesWritten)
+                );
+            }
+
+            if ($bytesWritten === 0) {
+                throw new RuntimeException('Failed to write to stream: no progress was made');
+            }
+
+            $totalBytesWritten += $bytesWritten;
+        }
     }
 
     /**

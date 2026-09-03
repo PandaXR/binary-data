@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Lxr\BinaryData\Tests;
 
 use Lxr\BinaryData\Exceptions\InvalidArgumentException;
+use Lxr\BinaryData\Exceptions\RuntimeException;
 use Lxr\BinaryData\Streams\FileBinaryStream;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -72,6 +73,90 @@ final class FileBinaryStreamTest extends TestCase
             $stream->read($length);
         } finally {
             $stream->close();
+        }
+    }
+
+    public function testRejectsNegativePositionWithoutMovingCursor(): void
+    {
+        $stream = new FileBinaryStream($this->filePath);
+
+        try {
+            try {
+                $stream->setPosition(-1);
+                self::fail('Expected an InvalidArgumentException');
+            } catch (InvalidArgumentException) {
+                self::assertSame(0, $stream->getPosition());
+            }
+        } finally {
+            $stream->close();
+        }
+    }
+
+    public function testCloseIsIdempotent(): void
+    {
+        $stream = new FileBinaryStream($this->filePath);
+
+        $stream->close();
+        $stream->close();
+    }
+
+    /**
+     * @return iterable<string, array{string, list<mixed>}>
+     */
+    public static function operationsRequiringOpenStream(): iterable
+    {
+        yield 'get position' => ['getPosition', []];
+        yield 'set position' => ['setPosition', [0]];
+        yield 'read' => ['read', [1]];
+        yield 'write' => ['write', ['data']];
+        yield 'write empty data' => ['write', ['']];
+    }
+
+    /**
+     * @param list<mixed> $arguments
+     */
+    #[DataProvider('operationsRequiringOpenStream')]
+    public function testRejectsOperationsAfterClose(string $method, array $arguments): void
+    {
+        $stream = new FileBinaryStream($this->filePath);
+        $stream->close();
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Stream is closed');
+
+        $stream->{$method}(...$arguments);
+    }
+
+    public function testWritesEmptyData(): void
+    {
+        $stream = new FileBinaryStream($this->filePath);
+
+        try {
+            self::assertSame(0, $stream->write(''));
+            self::assertSame(0, $stream->getPosition());
+        } finally {
+            $stream->close();
+        }
+    }
+
+    public function testTranslatesOpenFailureToPackageException(): void
+    {
+        try {
+            new FileBinaryStream($this->filePath . '-missing');
+            self::fail('Expected a RuntimeException');
+        } catch (RuntimeException $exception) {
+            self::assertStringContainsString('Failed to open file', $exception->getMessage());
+            self::assertInstanceOf(\RuntimeException::class, $exception->getPrevious());
+        }
+    }
+
+    public function testTranslatesNativeOpenExceptionToPackageException(): void
+    {
+        try {
+            new FileBinaryStream("invalid\0path");
+            self::fail('Expected a RuntimeException');
+        } catch (RuntimeException $exception) {
+            self::assertInstanceOf(\ValueError::class, $exception->getPrevious());
         }
     }
 }

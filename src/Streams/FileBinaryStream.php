@@ -11,54 +11,79 @@ use Lxr\BinaryData\Exceptions\RuntimeException;
 class FileBinaryStream implements StreamContract
 {
     /**
-     * Resource to read from.
+     * File to read from and write to.
      *
-     * @var resource
+     * @var \SplFileObject|null
      */
-    private $resource;
+    private ?\SplFileObject $file = null;
 
     /**
      * Construct new FileBinaryStream instance.
      *
      * @param string $filePath Path to the file to read from
      * @return void
+     * @throws RuntimeException When the file cannot be opened
      */
     public function __construct(string $filePath)
     {
-        $resource = fopen($filePath, 'r+b');
-        if (!$resource) {
-            throw new RuntimeException('Failed to open file: ' . $filePath);
+        try {
+            $this->file = new \SplFileObject($filePath, 'r+b');
+        } catch (\Throwable $exception) {
+            throw new RuntimeException(
+                'Failed to open file: ' . $filePath,
+                0,
+                $exception
+            );
         }
-
-        $this->resource = $resource;
     }
 
     /**
      * Get the current position in the stream.
      *
-     * @return int
+     * @return int Current position in bytes
+     * @throws RuntimeException When the stream is closed or its position cannot be read
      */
     public function getPosition(): int
     {
-        return (int) ftell($this->resource);
+        $position = $this->getFile()->ftell();
+
+        if ($position === false) {
+            throw new RuntimeException('Failed to get stream position');
+        }
+
+        return $position;
     }
 
     /**
      * Set the current position in the stream.
      *
-     * @param int $position
+     * @param int $position Zero-based byte position
      * @return void
+     * @throws InvalidArgumentException When the position is negative
+     * @throws RuntimeException When the stream is closed or cannot be repositioned
      */
     public function setPosition(int $position): void
     {
-        fseek($this->resource, $position);
+        if ($position < 0) {
+            throw new InvalidArgumentException(
+                'Stream position must be greater than or equal to zero'
+            );
+        }
+
+        $result = $this->getFile()->fseek($position);
+
+        if ($result !== 0) {
+            throw new RuntimeException('Failed to set stream position');
+        }
     }
 
     /**
      * Read a specified number of bytes from the stream.
      *
-     * @param int $length
-     * @return string
+     * @param int $length Positive number of bytes to read
+     * @return string Binary data read from the stream
+     * @throws InvalidArgumentException When the length is not positive
+     * @throws RuntimeException When the stream is closed or cannot be read
      */
     public function read(int $length): string
     {
@@ -66,7 +91,8 @@ class FileBinaryStream implements StreamContract
             throw new InvalidArgumentException('Read length must be greater than zero');
         }
 
-        $data = fread($this->resource, $length);
+        $data = $this->getFile()->fread($length);
+
         if ($data === false) {
             throw new RuntimeException('Failed to read from stream');
         }
@@ -77,30 +103,57 @@ class FileBinaryStream implements StreamContract
     /**
      * Write data to the stream.
      *
-     * @param string $data
+     * @param string $data Binary data to write
      * @return int Number of bytes written
+     * @throws RuntimeException When the stream is closed or cannot write all bytes
      */
     public function write(string $data): int
     {
-        $bytesWritten = fwrite($this->resource, $data);
-        if ($bytesWritten === false) {
-            throw new RuntimeException('Failed to write to stream');
+        $file = $this->getFile();
+        $length = strlen($data);
+        $totalBytesWritten = 0;
+
+        while ($totalBytesWritten < $length) {
+            $bytesWritten = $file->fwrite(substr($data, $totalBytesWritten));
+
+            if ($bytesWritten === false) {
+                throw new RuntimeException('Failed to write to stream');
+            }
+
+            if ($bytesWritten === 0) {
+                throw new RuntimeException('Failed to write to stream: no progress was made');
+            }
+
+            $totalBytesWritten += $bytesWritten;
         }
 
-        if ($bytesWritten !== strlen($data)) {
-            throw new RuntimeException('Failed to write all data to stream');
-        }
-
-        return $bytesWritten;
+        return $totalBytesWritten;
     }
 
     /**
      * Close the stream and release any resources.
      *
+     * Repeated calls have no effect.
+     *
      * @return void
      */
     public function close(): void
     {
-        fclose($this->resource);
+        $this->file = null;
+    }
+
+    /**
+     * Get the open file.
+     *
+     * @return \SplFileObject Open file
+     * @throws RuntimeException When the stream has already been closed
+     */
+    private function getFile(): \SplFileObject
+    {
+        if ($this->file === null) {
+            throw new RuntimeException('Stream is closed');
+        }
+
+        return $this->file;
     }
 }
